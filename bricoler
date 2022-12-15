@@ -1,0 +1,37 @@
+#!/usr/bin/env lua54
+-- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+
+local Argparse = require 'argparse'
+local Posix = require 'posix'
+
+local Task = require 'lib.bricoler.task'
+local Util = require 'lib.bricoler.util'
+
+-- Find a path for this script and load task definitions from the relative dir.
+local script = Posix.libgen.basename(arg[0])
+local scriptdir = Posix.libgen.dirname(arg[0])
+local taskdir = scriptdir .. "/tasks"
+local tasks = {}
+Util.fsvisit(taskdir, function (dir, file, attr)
+    if attr.mode ~= "file" then
+        return
+    end
+
+    local path = dir .. "/" .. file
+    local match = path:match("^" .. taskdir .. "/+(.+)%.task$")
+    if match then
+        tasks[match] = Task(path)
+    end
+end)
+
+for k, _ in pairs(tasks) do
+    print(k)
+end
+
+local cmds = {}
+local parser = Argparse(script, "Run a set of tasks with the specified parameters.")
+cmds.runtask = parser:command("runtask")
+cmds.runtask:option("-p --param", "Specify a parameter for one or more tasks."):count("*")
+cmds.runtask:option("--workdir", "Work directory under which to run tasks.  Overrides ${BRICOLER_WORKDIR}.")
+
+local _ = parser:parse()
