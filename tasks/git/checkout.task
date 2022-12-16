@@ -1,0 +1,26 @@
+Descr = [[
+Make a git repository available, either by cloning an existing repository,
+or updating an existing clone.
+]]
+
+Params = {
+    repo = {
+        descr = "URL for the git repository to check out.",
+        required = true,
+    },
+    branch = {
+        descr = "git branch to check out."
+    }
+}
+
+Outputs = {
+    repo = {
+        descr = "A path to the requested repository.",
+    }
+}
+
+function Run()
+
+end
+
+-- vi: ft=lua

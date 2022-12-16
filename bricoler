@@ -2,36 +2,55 @@
 -- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
 
 local Argparse = require 'argparse'
-local Posix = require 'posix'
 
 local Task = require 'lib.bricoler.task'
+local TaskSched = require 'lib.bricoler.tasksched'
 local Util = require 'lib.bricoler.util'
 
 -- Find a path for this script and load task definitions from the relative dir.
-local script = Posix.libgen.basename(arg[0])
-local scriptdir = Posix.libgen.dirname(arg[0])
+local script = Util.basename(arg[0])
+local scriptdir = Util.dirname(arg[0])
 local taskdir = scriptdir .. "/tasks"
 local tasks = {}
+local default_task = "list-tasks"
 Util.fsvisit(taskdir, function (dir, file, attr)
     if attr.mode ~= "file" then
         return
     end
 
     local path = dir .. "/" .. file
-    local match = path:match("^" .. taskdir .. "/+(.+)%.task$")
-    if match then
-        tasks[match] = Task(path)
+    local name = path:match("^" .. taskdir .. "/+(.+)%.task$")
+    if name then
+        -- XXX-MJ make sure there's no invalid chars.
+        tasks[name] = Task{path = path, env = {}}
+    else
+        Util.warn("Ignored file '" .. path .. "' in task directory.")
     end
 end)
 
-for k, _ in pairs(tasks) do
-    print(k)
-end
-
 local cmds = {}
-local parser = Argparse(script, "Run a set of tasks with the specified parameters.")
+local parser = Argparse(script, "Manage and run tasks.")
 cmds.runtask = parser:command("runtask")
-cmds.runtask:option("-p --param", "Specify a parameter for one or more tasks."):count("*")
-cmds.runtask:option("--workdir", "Work directory under which to run tasks.  Overrides ${BRICOLER_WORKDIR}.")
+    :description("Run the specified task, or list available tasks.")
+cmds.runtask:option("-p --param", "Specify a parameter for one or more tasks.")
+    :count("*")
+cmds.runtask:option("--workdir",
+                    "Work directory under which to run tasks. " ..
+                    "Overrides ${BRICOLER_WORKDIR}.")
+local taskchoices = Util.tablekeys(tasks)
+table.insert(taskchoices, default_task)
+cmds.runtask:argument("task", "Task name.", default_task)
+    :choices(taskchoices)
 
-local _ = parser:parse()
+local args = parser:parse()
+if args.runtask then
+    local sched = TaskSched(tasks, args.task)
+    if args.task == default_task then
+        for k, _ in pairs(tasks) do
+            print(k)
+        end
+        os.exit(0)
+    end
+    sched:bind(args.param)
+    sched:run()
+end

@@ -3,22 +3,19 @@
 local Class = require 'lib.bricoler.class'
 
 local Task = Class({
-    inputs = {},
-    outputs = {},
-    params = {},
-    env = {}
+    inputs = {},        -- Inputs defined by the task.
+    outputs = {},       -- Outputs defined by the task.
+    params = {},        -- Parameters defined by the task.
+    env = {},           -- Environment in which the task definition is loaded.
 })
 
-function Task:_ctor(...)
-    local count = select("#", ...)
-    if count ~= 1 then
-        error("Task constructor given " .. count .. " params, expected 1.")
+function Task:_ctor(args)
+    self.env = args.env
+    if args.path then
+        assert(loadfile(args.path, "t", self.env))()
+    else
+        error("No task definition was provided.")
     end
-    local path = select(1, ...)
-    if type(path) ~= "string" then
-        error("Task constructor parameter type must be 'string'.")
-    end
-    assert(loadfile(path, "t", self.env))()
     return self
 end
 

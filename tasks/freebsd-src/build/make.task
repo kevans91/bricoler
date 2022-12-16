@@ -1,0 +1,34 @@
+Descr = [[
+Make a FreeBSD src build target, such as buildworld.
+]]
+
+Params = {
+    target = {
+        descr = "make(1) target",
+        required = true,
+    },
+    makeparams = {
+        descr = "Parameters to pass to make(1)."
+    }
+}
+
+Inputs = {
+    checkout = {
+        task = "git/checkout",
+        params = {
+            repo = "https://github.com/freebsd/freebsd-src",
+            branch = "main",
+        }
+    }
+}
+
+Outputs = {
+    objdir = {
+        descr = "A directory containing the build artifacts."
+    }
+}
+
+function Run()
+end
+
+-- vi: ft=lua
