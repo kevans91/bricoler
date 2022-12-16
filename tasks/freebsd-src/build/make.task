@@ -24,7 +24,7 @@ Inputs = {
 
 Outputs = {
     objdir = {
-        descr = "A directory containing the build artifacts."
+        descr = "A directory containing the unstaged output of the build."
     }
 }
 

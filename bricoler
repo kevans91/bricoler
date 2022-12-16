@@ -22,7 +22,7 @@ Util.fsvisit(taskdir, function (dir, file, attr)
     local name = path:match("^" .. taskdir .. "/+(.+)%.task$")
     if name then
         -- XXX-MJ make sure there's no invalid chars.
-        tasks[name] = Task{path = path, env = {}}
+        tasks[name] = Task{path = path}
     else
         Util.warn("Ignored file '" .. path .. "' in task directory.")
     end

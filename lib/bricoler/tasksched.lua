@@ -2,10 +2,10 @@
 
 local Class = require 'lib.bricoler.class'
 
-local TaskSched = Class({
+local TaskSched = Class{
     universe = {},              -- Set of all known tasks, keyed by task name.
     target = "",                -- Name of the target task to run.
-})
+}
 
 -- Arguments:
 --   a set of task definitions, keyed by task name
@@ -26,10 +26,11 @@ function TaskSched:_ctor(...)
     return self
 end
 
-function TaskSched:bind(params)
+function TaskSched:bind()
 end
 
 function TaskSched:run()
+    self.universe[self.target]:run()
 end
 
 return TaskSched
