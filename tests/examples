@@ -1,0 +1,17 @@
+#!/usr/bin/env atf-sh
+
+. $(atf_get_srcdir)/_env.sh
+
+# Verify that the example tasks work.
+
+atf_test_case hello_world
+hello_world_body()
+{
+	atf_check -o inline:"Hello, world!\n" \
+	    bricoler runtask example/hello-world
+}
+
+atf_init_test_cases()
+{
+	atf_add_test_case hello_world
+}
