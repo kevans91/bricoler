@@ -35,8 +35,7 @@ cmds.runtask = parser:command("runtask")
 cmds.runtask:option("-p --param", "Specify a parameter for one or more tasks.")
     :count("*")
 cmds.runtask:option("--workdir",
-                    "Work directory under which to run tasks. " ..
-                    "Overrides ${BRICOLER_WORKDIR}.")
+    "Work directory under which to run tasks. Overrides ${BRICOLER_WORKDIR}.")
 local taskchoices = Util.tablekeys(tasks)
 table.insert(taskchoices, default_task)
 cmds.runtask:argument("task", "Task name.", default_task)
@@ -44,13 +43,13 @@ cmds.runtask:argument("task", "Task name.", default_task)
 
 local args = parser:parse()
 if args.runtask then
-    local sched = TaskSched(tasks, args.task)
     if args.task == default_task then
         for k, _ in pairs(tasks) do
             print(k)
         end
         os.exit(0)
     end
+    local sched = TaskSched{universe = tasks, target = args.task}
     sched:bind(args.param)
     sched:run()
 end

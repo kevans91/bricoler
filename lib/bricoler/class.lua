@@ -13,27 +13,53 @@ local function class(proto, props)
 
     local c = {}
     c.__index = c
-    c.__call = function(self, ...)
-        local object = deepcopy(self.__proto, {})
-        return setmetatable(object, self):_ctor(...)
+
+    c._proto = proto
+    c._props = {}
+    for _, v in ipairs(props or {}) do
+        c._props[v[1]] = v[2]
     end
-    c.__proto = proto
+
+    -- Default constructor, can be overridden in the class implementation.
+    c._ctor = function (self, _)
+        return self
+    end
+
+    -- Instantiate a new object when the class is called.  The prototype is
+    -- copied into the new object and properties given to the constructor are
+    -- checked and set.  Finally the object-specific constructor is called.
+    c.__call = function(self, ...)
+        local object = deepcopy(self._proto, {})
+        if select("#", ...) ~= 1 then
+            error("Constructors take a single table parameter.")
+        end
+        local t = select(1, ...)
+        if type(t) ~= "table" then
+            error("Constructor parameter must be a table.")
+        end
+        for k, v in pairs(t) do
+            if self._props[k] then
+                object[k] = self._props[k](v)
+            end
+        end
+        return setmetatable(object, self):_ctor(t)
+    end
     return setmetatable(c, c)
 end
 
-local function typecheck(field, t)
-    return field, function (v)
-        if type(v) == t then
+local function property(field, t)
+    return {field, function (v)
+        if not t or type(v) == t then
             return v
         else
             error("A value for property '" .. field .. "' must have type " .. t .. ".")
         end
-    end
+    end}
 end
 
 local m = {
     class = class,
-    typecheck = typecheck
+    property = property
 }
 
 local mt = {
@@ -43,5 +69,5 @@ local mt = {
 -- A bit of magic to allow
 --     Class = require 'lib.bricoler.class'
 --     T = Class(...)
--- to work.
+-- to work while also defining other things in the module "Class".
 return setmetatable(m, mt)

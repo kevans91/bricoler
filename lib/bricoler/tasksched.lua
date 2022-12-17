@@ -2,28 +2,33 @@
 
 local Class = require 'lib.bricoler.class'
 
-local TaskSched = Class{
+local TaskSched = Class({
+    schedule = {},              -- Tree of tasks to run.
     universe = {},              -- Set of all known tasks, keyed by task name.
     target = "",                -- Name of the target task to run.
-}
+}, {
+    Class.property("universe", "table"),
+    Class.property("target", "string"),
+})
 
--- Arguments:
---   a set of task definitions, keyed by task name
---   a target task that will be executed
-function TaskSched:_ctor(...)
-    local count = select("#", ...)
-    if count ~= 2 then
-        error("TaskSched constructor given " .. count .. " params, expected 2.")
+function TaskSched:_ctor(props)
+    if not self.universe[self.target] then
+        error("Unknown task '" .. self.target .. "'.")
     end
-    self.universe = select(1, ...)
-    if type(self.universe) ~= "table" then
-        error("TaskSched constructor first parameter type must be 'table'.")
-    end
-    self.target = select(2, ...)
-    if type(self.target) ~= "string" then
-        error("TaskSched constructor second parameter type must be 'string'.")
-    end
+    self.schedule = self:_mksched(self.target)
     return self
+end
+
+function TaskSched:_mksched(taskname)
+    if not self.universe[taskname] then
+        error("Unknown task '" .. taskname .. "'.")
+    end
+    task = self.universe[taskname]
+    local sched = {task}
+    for name, input in pairs(task.inputs) do
+        table.insert(sched, self:_mksched(input.task))
+    end
+    return sched
 end
 
 function TaskSched:bind()

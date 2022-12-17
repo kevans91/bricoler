@@ -1,3 +1,5 @@
+-- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+
 Descr = [[
 Make a FreeBSD src build target, such as buildworld.
 ]]

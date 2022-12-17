@@ -1,0 +1,53 @@
+-- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+
+Descr = [[
+Fetch a FreeBSD VM image from https://ftp.freebsd.org.
+]]
+
+Params = {
+    arch = {
+        descr = "Target platform of the image, e.g., amd64, defaults to host.",
+    },
+    format = {
+        descr = "VM image format.",
+        default = "raw",
+    },
+    version = {
+        descr = "Version to fetch, e.g., 13.1-RELEASE, 14.0-CURRENT.",
+        required = true,
+    },
+    uncompress = {
+        descr = "Uncompress the downloaded image",
+        default = false,
+    }
+}
+
+Outputs = {
+    image = {
+        descr = "Path to the fetched VM image file.",
+    }
+}
+
+function Run(_, params, _, outputs)
+    local compsuffix = ".xz"
+
+    local vers, reltype = tostring(params.version):match("^(%d+%.%d)%-([%w]+)$")
+    if not vers or not reltype then
+        error("Invalid version '" .. params.version .. "'.")
+    end
+
+    local dir = "releases"
+    if reltype == "CURRENT" or reltype == "STABLE" then
+        dir = "snapshots"
+    end
+    local url = "https://download.freebsd.org/ftp/" .. dir .. "/VM-IMAGES/" ..
+                params.version .. "/" .. params.target .. "/Latest/" ..
+                params.version .. "-" .. params.target .. "." ..
+                params.format .. compsuffix
+
+    local imagepath = outputs.image .. compsuffix
+    system("fetch -o " .. imagepath .. " " .. url)
+    system("unxz " .. imagepath)
+end
+
+-- vi: ft=lua
