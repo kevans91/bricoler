@@ -31,6 +31,16 @@ local function fsvisit(dir, cb)
     end
 end
 
+local function sysctl(name)
+    local f = io.popen("sysctl -n " .. name)
+    if not f then
+        error("Failed to popen('sysctl -n " .. name .. "').")
+    end
+    local val = f:read()
+    f:close()
+    return val
+end
+
 local function tablekeys(t)
     local ret = {}
     for k, _ in pairs(t) do
@@ -52,6 +62,9 @@ return {
     basename = basename,
     dirname = dirname,
     fsvisit = fsvisit,
+
+    sysctl = sysctl,
+
     tablekeys = tablekeys,
 
     err = err,

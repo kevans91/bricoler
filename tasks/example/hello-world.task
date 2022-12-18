@@ -1,5 +1,12 @@
-function Run()
-    print("Hello, world!")
+Params = {
+    addressee = {
+        descr = "Who are we saying hello to?",
+        default = "world",
+    }
+}
+
+function Run(_, params)
+    print("Hello, " .. params.addressee.val .. "!")
 end
 
 -- vi: ft=lua

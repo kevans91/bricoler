@@ -11,6 +11,10 @@ Params = {
     },
     makeparams = {
         descr = "Parameters to pass to make(1)."
+    },
+    clean = {
+        descr = "Force a clean build of the target.",
+        default = false,
     }
 }
 

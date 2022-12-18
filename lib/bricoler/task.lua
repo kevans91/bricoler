@@ -58,9 +58,14 @@ function Task:_ctor(args)
     return self
 end
 
-function Task:run()
+function Task:bind(param, val)
+    assert(self.params[param].default or not self.params[param].val)
+    self.params[param].val = val
+end
+
+function Task:run(ctx)
     self.env.print = print
-    self.action()
+    self.action(ctx, self.params)
 end
 
 return Task
