@@ -1,6 +1,8 @@
+-- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+
 Params = {
     addressee = {
-        descr = "Who are we saying hello to?",
+        descr = "To whom are we saying hello?",
         default = "world",
     }
 }

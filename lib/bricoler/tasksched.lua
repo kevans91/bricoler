@@ -12,7 +12,7 @@ local TaskSched = Class({
     Class.property("target", "string"),
 })
 
-function TaskSched:_ctor(props)
+function TaskSched:_ctor()
     if not self.universe[self.target] then
         error("Unknown task '" .. self.target .. "'.")
     end
@@ -25,7 +25,7 @@ function TaskSched:_mksched(taskname)
         error("Unknown task '" .. taskname .. "'.")
     end
     local task = self.universe[taskname]
-    local sched = {task}
+    local sched = {task, taskname}
     for name, input in pairs(task.inputs) do
         sched[name] = self:_mksched(input.task)
     end
@@ -34,11 +34,11 @@ end
 
 local function visitsched(schedule, f)
     for k, v in pairs(schedule) do
-        if k ~= 1 then
+        if type(k) == "string" then
             visitsched(v, f)
         end
     end
-    f(schedule[1])
+    f(schedule[1], schedule[2])
 end
 
 -- Arguments:
@@ -46,10 +46,8 @@ end
 function TaskSched:bind(params)
     -- First bind default values for scheduled task parameters.
     visitsched(self.schedule, function (task)
-        for _, v in pairs(task.params) do
-            if v.default then
-                v.val = v.default
-            end
+        for name, param in pairs(task.params) do
+            task:bind(name, param:defaultvalue())
         end
     end)
 
@@ -71,6 +69,15 @@ function TaskSched:run()
 
     visitsched(self.schedule, function (task)
         task:run(ctx)
+    end)
+end
+
+function TaskSched:print()
+    visitsched(self.schedule, function (task, taskname)
+        print("Task: " .. taskname)
+        for name, param in pairs(task.params) do
+            print("  Param: " .. name .. "=" .. (param:value() or "???"))
+        end
     end)
 end
 

@@ -2,15 +2,6 @@
 
 local Class = require 'lib.bricoler.class'
 
-local Task = Class({
-    inputs = {},        -- Inputs defined by the task.
-    outputs = {},       -- Outputs defined by the task.
-    params = {},        -- Parameters defined by the task.
-    env = {},           -- Environment in which the task definition is loaded.
-}, {
-    Class.property("path", "string")
-})
-
 local TaskInput = Class({
     descr = "",                 -- Human readable description for help messages.
 }, {
@@ -32,6 +23,31 @@ local TaskParam = Class({
     Class.property("descr", "string"),
     Class.property("required", "boolean"),
     Class.property("default"),
+})
+
+function TaskParam:defaultvalue()
+    for k, v in pairs(self) do
+        if k == "default" then
+            return v
+        end
+    end
+end
+
+function TaskParam:value()
+    for k, v in pairs(self) do
+        if k == "val" then
+            return v
+        end
+    end
+end
+
+local Task = Class({
+    inputs = {},        -- Inputs defined by the task.
+    outputs = {},       -- Outputs defined by the task.
+    params = {},        -- Parameters defined by the task.
+    env = {},           -- Environment in which the task definition is loaded.
+}, {
+    Class.property("path", "string")
 })
 
 function Task:_ctor(args)
@@ -59,12 +75,22 @@ function Task:_ctor(args)
 end
 
 function Task:bind(param, val)
-    assert(self.params[param].default or not self.params[param].val)
     self.params[param].val = val
 end
 
 function Task:run(ctx)
     self.env.print = print
+    self.env.system = function (cmd)
+        local res, how, status = os.execute(cmd)
+        if res then
+            return
+        end
+        if how == "exit" then
+            error("Command '" .. cmd .. "' exited with status " .. status .. ".")
+        else
+            error("Command '" .. cmd .. "' terminated by signal " .. status .. ".")
+        end
+    end
     self.action(ctx, self.params)
 end
 

@@ -32,13 +32,18 @@ local cmds = {}
 local parser = Argparse(script, "Manage and run tasks.")
 cmds.runtask = parser:command("runtask")
     :description("Run the specified task, or list available tasks.")
-cmds.runtask:option("-p --param", "Specify a parameter for one or more tasks.")
+cmds.runtask:flag("-s --show"):description("Print the computed task schedule.")
+cmds.runtask:option("-p --param")
+    :description("Specify a parameter for one or more tasks.")
     :count("*")
-cmds.runtask:option("--workdir",
-    "Work directory under which to run tasks. Overrides ${BRICOLER_WORKDIR}.")
+cmds.runtask:option("--workdir")
+    :description("Work directory under which to run tasks. " ..
+                 "Overrides ${BRICOLER_WORKDIR}.")
 local taskchoices = Util.tablekeys(tasks)
 table.insert(taskchoices, default_task)
-cmds.runtask:argument("task", "Task name.", default_task)
+cmds.runtask:argument("task")
+    :description("Task name.")
+    :default(default_task)
     :choices(taskchoices)
 
 local args = parser:parse()
@@ -51,5 +56,9 @@ if args.runtask then
     end
     local sched = TaskSched{universe = tasks, target = args.task}
     sched:bind(args.param)
-    sched:run()
+    if args.show then
+        sched:print()
+    else
+        sched:run()
+    end
 end
