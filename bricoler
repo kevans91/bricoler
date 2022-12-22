@@ -5,6 +5,7 @@ local Argparse = require 'argparse'
 
 local Task = require 'lib.bricoler.task'
 local TaskSched = require 'lib.bricoler.tasksched'
+local Workdir = require 'lib.bricoler.workdir'
 local Util = require 'lib.bricoler.util'
 
 -- Find a path for this script and load task definitions from the relative dir.
@@ -36,9 +37,11 @@ cmds.runtask:flag("-s --show"):description("Print the computed task schedule.")
 cmds.runtask:option("-p --param")
     :description("Specify a parameter for one or more tasks.")
     :count("*")
+local workdir = os.getenv("BRICOLER_WORKDIR") or (os.getenv("HOME") .. "/bricoler")
 cmds.runtask:option("--workdir")
     :description("Work directory under which to run tasks. " ..
                  "Overrides ${BRICOLER_WORKDIR}.")
+    :default(workdir)
 local taskchoices = Util.tablekeys(tasks)
 table.insert(taskchoices, default_task)
 cmds.runtask:argument("task")
@@ -47,6 +50,10 @@ cmds.runtask:argument("task")
     :choices(taskchoices)
 
 local args = parser:parse()
+
+-- Initialize and enter the workdir.
+Workdir.init(args.workdir)
+
 if args.runtask then
     if args.task == default_task then
         for k, _ in pairs(tasks) do
