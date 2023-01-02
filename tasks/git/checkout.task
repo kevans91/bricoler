@@ -14,8 +14,8 @@ Params = {
 }
 
 Outputs = {
-    repo = {
-        descr = "A path to the requested repository.",
+    checkout = {
+        descr = "A path to the checked out repository.",
     }
 }
 

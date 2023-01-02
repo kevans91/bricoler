@@ -1,0 +1,20 @@
+-- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+
+Params = {
+}
+
+Inputs = {
+    checkout = {
+        task = "git/checkout",
+        params = {
+            repo = "https://github.com/freebsd/pkg",
+            branch = "master",
+        }
+    }
+}
+
+function Run()
+
+end
+
+-- ft=lua

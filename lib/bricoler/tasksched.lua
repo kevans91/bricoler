@@ -42,7 +42,7 @@ local function visitsched(schedule, f)
 end
 
 -- Arguments:
---   params: an array of strings of the form <task>:<name>=<val>
+--   params: an array of strings of the form <name>:<param>=<val>
 function TaskSched:bind(params)
     -- First bind default values for scheduled task parameters.
     visitsched(self.schedule, function (task)
@@ -53,12 +53,20 @@ function TaskSched:bind(params)
 
     -- Now go through user-specific parameters and bind those.
     for _, v in ipairs(params) do
-        local task, param, val = v:match("^([^:]*):([^=]*)=(.*)$")
+        local task, param, val = v:match("^([^=:]+):([^=]+)=(.*)$")
         if not task then
-            error("Invalid parameter '" .. v .. "'.")
+            task, param, val = "", v:match("^([^=:]+)=(.*)$")
         end
 
-        self.universe[task]:bind(param, val)
+        local sched = self.schedule
+        for child, _ in task:gmatch("([^%.]+)") do
+            sched = sched[child]
+            if not sched then
+                error("Unmatched parameter name '" .. task .. "'.")
+            end
+        end
+
+        sched[1]:bind(param, val)
     end
 end
 
@@ -73,12 +81,34 @@ function TaskSched:run()
 end
 
 function TaskSched:print()
-    visitsched(self.schedule, function (task, taskname)
-        print("Task: " .. taskname)
-        for name, param in pairs(task.params) do
-            print("  Param: " .. name .. "=" .. (param:value() or "???"))
+    local function dump(input, sched, level)
+        local task, taskname = sched[1], sched[2]
+
+        local function prefix(count)
+            local str = "  "
+            return str:rep(count)
         end
-    end)
+
+        if input then
+            print(prefix(level) .. input .. " (" .. taskname .. ")")
+        else
+            print(prefix(level) .. taskname)
+        end
+        for name, param in pairs(task.params) do
+            print(prefix(level + 1) .. "P " .. name .. "=" .. (param:value() or "???"))
+        end
+        for name, _ in pairs(task.outputs) do
+            print(prefix(level + 1) .. "O " .. name)
+        end
+
+        for k, v in pairs(sched) do
+            if type(k) == "string" then
+                dump(k, v, level + 1)
+            end
+        end
+    end
+
+    dump(nil, self.schedule, 0)
 end
 
 return TaskSched
