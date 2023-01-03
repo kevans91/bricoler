@@ -95,10 +95,11 @@ function Task:run(ctx)
         end
     end
 
+    local params = {}
     for k, v in pairs(self.params) do
-        self.params[k] = v:value()
+        params[k] = v:value()
     end
-    self.action(ctx, self.params)
+    self.action(ctx, params)
 end
 
 return Task

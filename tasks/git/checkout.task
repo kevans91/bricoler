@@ -20,7 +20,11 @@ Outputs = {
 }
 
 function Run(_, params)
-    local cmd = "git clone " .. params.repo .. " checkout"
+    local cmd = "git clone "
+    if params.branch then
+        cmd = cmd .. "--branch=" .. params.branch .. " "
+    end
+    cmd = cmd .. params.repo .. " checkout"
     system(cmd)
 end
 

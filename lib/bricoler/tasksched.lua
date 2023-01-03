@@ -32,17 +32,25 @@ function TaskSched:_mksched(taskname)
     return sched
 end
 
-local function visitsched(schedule, f)
-    for k, v in pairs(schedule) do
-        if type(k) == "string" then
-            visitsched(v, f)
+-- Invoke a callback on all tasks in a schedule in postorder, i.e., children are
+-- visited before parents.
+local function visitsched(schedule, cb)
+    local function _visitsched(sched, f, name)
+        for k, v in pairs(sched) do
+            if type(k) == "string" then
+                table.insert(name, k)
+                _visitsched(v, f, name)
+                table.remove(name)
+            end
         end
+        f(sched[1], name)
     end
-    f(schedule[1], schedule[2])
+    _visitsched(schedule, cb, {})
 end
 
--- Arguments:
---   params: an array of strings of the form <name>:<param>=<val>
+-- Bind parameters for a task schedule.  "params" is an array of strings of the
+-- form [<name>:]<param>=<value>.  These values override default parameter
+-- values.
 function TaskSched:bind(params)
     -- First bind default values for scheduled task parameters.
     visitsched(self.schedule, function (task)
@@ -112,6 +120,7 @@ function TaskSched:print()
             print(prefix(level + 1) .. "O " .. name)
         end
 
+        -- XXX-MJ this should use visitsched, but needs preorder traversal.
         for k, v in pairs(sched) do
             if type(k) == "string" then
                 dump(k, v, level + 1)
