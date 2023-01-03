@@ -75,6 +75,16 @@ function TaskSched:run()
         maxjobs = Util.sysctl("hw.ncpu"),
     }
 
+    -- Do we have any unbound required parameters?  Raise an error if so.
+    visitsched(self.schedule, function (task)
+        for k, v in pairs(task.params) do
+            if v.required and not v:value() then
+                -- XXX-MJ error message needs to name the task too.
+                error("Required parameter '" .. k .. "' is unbound.")
+            end
+        end
+    end)
+
     visitsched(self.schedule, function (task)
         task:run(ctx)
     end)
@@ -95,7 +105,8 @@ function TaskSched:print()
             print(prefix(level) .. taskname)
         end
         for name, param in pairs(task.params) do
-            print(prefix(level + 1) .. "P " .. name .. "=" .. (param:value() or "???"))
+            local val = param:value() or (param.required and "???") or ""
+            print(prefix(level + 1) .. "P " .. name .. "=" .. val)
         end
         for name, _ in pairs(task.outputs) do
             print(prefix(level + 1) .. "O " .. name)

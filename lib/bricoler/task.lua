@@ -75,6 +75,9 @@ function Task:_ctor(args)
 end
 
 function Task:bind(param, val)
+    if not self.params[param] then
+        error("Binding non-existent parameter '" .. param .. "'.")
+    end
     self.params[param].val = val
 end
 
@@ -90,6 +93,10 @@ function Task:run(ctx)
         else
             error("Command '" .. cmd .. "' terminated by signal " .. status .. ".")
         end
+    end
+
+    for k, v in pairs(self.params) do
+        self.params[k] = v:value()
     end
     self.action(ctx, self.params)
 end

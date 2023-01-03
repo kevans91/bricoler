@@ -28,6 +28,7 @@ local function init(dir)
     if not ok then
         error("Failed to enter workdir: " .. err)
     end
+    os.execute("rm -rf *") -- XXX-MJ
     workdir = dir
 end
 

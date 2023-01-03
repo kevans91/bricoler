@@ -8,7 +8,7 @@ Params = {
 }
 
 function Run(_, params)
-    print("Hello, " .. params.addressee.val .. "!")
+    print("Hello, " .. params.addressee .. "!")
 end
 
 -- vi: ft=lua

@@ -13,8 +13,10 @@ Inputs = {
     }
 }
 
-function Run()
-
+function Run(ctx, params, inputs, outputs)
+    -- XXX-MJ replace hard-coded "checkout" path
+    system("checkout/configure")
+    system("make -j " .. ctx.maxjobs)
 end
 
--- ft=lua
+-- vi: ft=lua

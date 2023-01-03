@@ -19,8 +19,9 @@ Outputs = {
     }
 }
 
-function Run()
-
+function Run(_, params)
+    local cmd = "git clone " .. params.repo .. " checkout"
+    system(cmd)
 end
 
 -- vi: ft=lua
