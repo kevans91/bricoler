@@ -56,8 +56,10 @@ Workdir.init(args.workdir)
 
 if args.runtask then
     if args.task == default_task then
-        for k, _ in pairs(tasks) do
-            print(k)
+        local list = Util.tablekeys(tasks)
+        table.sort(list)
+        for _, v in ipairs(list) do
+            print(v)
         end
         os.exit(0)
     end

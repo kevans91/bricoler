@@ -95,6 +95,8 @@ function Task:run(ctx)
         end
     end
 
+    -- Let actions access parameters directly instead of going through the
+    -- "val" field.
     local params = {}
     for k, v in pairs(self.params) do
         params[k] = v:value()
