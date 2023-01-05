@@ -41,11 +41,19 @@ local function sysctl(name)
     return val
 end
 
+-- Create an array from the keys of a table.
 local function tablekeys(t)
     local ret = {}
     for k, _ in pairs(t) do
         table.insert(ret, k)
     end
+    return ret
+end
+
+-- Same as tablekeys() but the resulting array is sorted.
+local function tablekeys_s(t, comp)
+    local ret = tablekeys(t)
+    table.sort(ret, comp)
     return ret
 end
 
@@ -66,6 +74,7 @@ return {
     sysctl = sysctl,
 
     tablekeys = tablekeys,
+    tablekeys_s = tablekeys_s,
 
     err = err,
     warn = warn,

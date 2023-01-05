@@ -6,6 +6,7 @@ local Class = require 'lib.bricoler.class'
 
 local TaskInput = Class({
     descr = "",                 -- Human readable description for help messages.
+    params = {},
 }, {
     Class.property("descr", "string"),
     Class.property("task", "string"),
@@ -109,7 +110,12 @@ function Task:run(ctx, inputs)
     for k, v in pairs(self.params) do
         params[k] = v:value()
     end
-    self.action(ctx, params, inputs, {})
+
+    local outputs = {}
+    for k, _ in pairs(self.outputs) do
+        outputs[k] = k
+    end
+    self.action(ctx, params, inputs, outputs)
 end
 
 return Task

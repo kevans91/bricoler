@@ -1,0 +1,20 @@
+-- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+
+Params = {
+    msg = {
+        descr = "the message to write to the output file",
+        default = "hello"
+    }
+}
+
+Outputs = {
+    file = {
+        descr = "A file containing a message",
+    }
+}
+
+function Run(_, params, _, outputs)
+    system("echo '" .. params.msg .. "' > " .. outputs.file)
+end
+
+-- vi: ft=lua

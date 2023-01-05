@@ -1,0 +1,8 @@
+-- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+
+-- XXX-MJ placeholder for release image building tasks
+
+function Run()
+end
+
+-- vi: ft=lua

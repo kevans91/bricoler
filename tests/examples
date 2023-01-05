@@ -13,19 +13,34 @@ hello_world_body()
 	    bricoler runtask example/hello-world
 	atf_check -o inline:"Hello, markj!\n" \
 	    bricoler runtask -p addressee=markj example/hello-world
+	atf_check -o empty -e match:"Binding non-existent parameter 'addresseee'." \
+	    -s not-exit:0 \
+	    bricoler runtask -p addresseee=markj example/hello-world
 }
 
 atf_test_case hello_input
 hello_input_body()
 {
-	atf_check -o inline:"Hello, world!\nHello, world!\n" \
+	atf_check -o inline:"Hello, markj!\nGoodbye!\n" \
 	    bricoler runtask example/hello-input
-	# XXX-MJ we only create a single instance of each task, so currently
-	# can't bind parameters for a single instance. 
+	atf_check -o inline:"Hello, jkram!\nGoodbye!\n" \
+	    bricoler runtask -p hello:addressee=jkram example/hello-input
+}
+
+atf_test_case hello_output
+hello_output_body()
+{
+	atf_check -o empty \
+	    bricoler runtask example/hello-output
+	atf_check -o inline:"hello\n" \
+	    bricoler runtask example/hello-output-parent
+	atf_check -o inline:"goodbye\n" \
+	    bricoler runtask -p output:msg=goodbye example/hello-output-parent
 }
 
 atf_init_test_cases()
 {
 	atf_add_test_case hello_world
 	atf_add_test_case hello_input
+	atf_add_test_case hello_output
 }

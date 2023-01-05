@@ -1,15 +1,16 @@
 -- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
 
 Inputs = {
-    first_hello = {
-        task = 'example/hello-world'
+    hello = {
+        task = 'example/hello-world',
+        params = {
+            addressee = "markj",
+        },
     },
-    second_hello = {
-        task = 'example/hello-world'
-    }
 }
 
 function Run()
+    print("Goodbye!")
 end
 
 -- vi: ft=lua

@@ -54,9 +54,15 @@ end
 -- values.
 function TaskSched:bind(params)
     -- First bind default values for scheduled task parameters.
-    visitsched(self.schedule, function (task)
+    visitsched(self.schedule, function (task, sched)
         for name, param in pairs(task.params) do
             task:bind(name, param:defaultvalue())
+        end
+
+        for iname, input in pairs(task.inputs) do
+            for pname, param in pairs(input.params) do
+                sched[iname][1]:bind(pname, param)
+            end
         end
     end)
 
@@ -131,12 +137,16 @@ function TaskSched:print()
         else
             print(prefix(level) .. taskname)
         end
-        for name, param in pairs(task.params) do
-            -- XXX-MJ doesn't show default values specified in an input?
+
+        local params = Util.tablekeys_s(task.params)
+        for _, name in ipairs(params) do
+            local param = task.params[name]
             local val = param:value() or (param.required and "???") or ""
             print(prefix(level + 1) .. "P " .. name .. "=" .. tostring(val))
         end
-        for name, _ in pairs(task.outputs) do
+
+        local outputs = Util.tablekeys_s(task.outputs)
+        for _, name in ipairs(outputs) do
             print(prefix(level + 1) .. "O " .. name)
         end
 

@@ -1,0 +1,13 @@
+-- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+
+Inputs = {
+    output = {
+        task = "example/hello-output"
+    }
+}
+
+function Run(_, _, inputs)
+    system("cat '" .. inputs.output.file .. "'")
+end
+
+-- vi: ft=lua
