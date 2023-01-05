@@ -32,9 +32,9 @@ local function fsvisit(dir, cb)
 end
 
 local function sysctl(name)
-    local f = io.popen("sysctl -n " .. name)
+    local f, err = io.popen("sysctl -n " .. name)
     if not f then
-        error("Failed to popen('sysctl -n " .. name .. "').")
+        error("Failed to popen('sysctl -n " .. name .. "'): " .. err)
     end
     local val = f:read()
     f:close()

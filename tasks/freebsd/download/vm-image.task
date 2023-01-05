@@ -7,6 +7,7 @@ Fetch a FreeBSD VM image from https://ftp.freebsd.org.
 Params = {
     arch = {
         descr = "Target platform of the image, e.g., amd64, defaults to host.",
+        default = uname_m()
     },
     format = {
         descr = "VM image format.",
@@ -31,7 +32,7 @@ Outputs = {
 function Run(_, params, _, outputs)
     local compsuffix = ".xz"
 
-    local vers, reltype = tostring(params.version):match("^(%d+%.%d)%-([%w]+)$")
+    local vers, reltype = params.version:match("^(%d+%.%d)%-([%w]+)$")
     if not vers or not reltype then
         error("Invalid version '" .. params.version .. "'.")
     end
@@ -41,13 +42,20 @@ function Run(_, params, _, outputs)
         dir = "snapshots"
     end
     local url = "https://download.freebsd.org/ftp/" .. dir .. "/VM-IMAGES/" ..
-                params.version .. "/" .. params.target .. "/Latest/" ..
-                params.version .. "-" .. params.target .. "." ..
+                params.version .. "/" .. params.arch .. "/Latest/" ..
+                "FreeBSD-" .. params.version .. "-" .. params.arch .. "." ..
                 params.format .. compsuffix
 
     local imagepath = outputs.image .. compsuffix
     system("fetch -o " .. imagepath .. " " .. url)
-    system("unxz " .. imagepath)
+
+    -- XXX-MJ how do we handle compression?  Maybe the output should be a
+    -- directory containing the fetched file with the original name.
+    -- XXX-MJ also provide a decompress_file() function which uses the suffix or
+    -- file(1) to decide which decompressor to use.
+    if params.uncompress then
+        system("unxz " .. imagepath)
+    end
 end
 
 -- vi: ft=lua

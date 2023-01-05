@@ -1,0 +1,43 @@
+-- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+
+Descr = [[
+Fetch Jenkins job artifacts from the FreeBSD CI server.
+]]
+
+Params = {
+    branch = {
+        descr = "FreeBSD src branch name",
+        default = "main",
+    },
+    revision = {
+        descr = "src tree revision or 'latest', 'latest_tested', 'latest_testvm', 'latest_vm'",
+        required = true,
+    },
+    arch = {
+        descr = "target platform, e.g., 'amd64'",
+        default = uname_m(),
+    },
+    file = {
+        descr = "the file to fetch",
+        required = true,
+    }
+}
+
+Outputs = {
+    file = {
+        descr = "fetched file"
+    }
+}
+
+function Run(_, params, _, _)
+    local url = "https://artifacts.ci.freebsd.org/snapshot/" ..
+                params.branch .. "/" ..
+                params.revision .. "/" ..
+                params.arch .. "/" .. params.arch .. "/" ..
+                params.file
+
+    -- XXX-MJ how do we handle compression?  Maybe the output should be a
+    -- directory containing the fetched file with the original name.
+end
+
+-- vi: ft=lua

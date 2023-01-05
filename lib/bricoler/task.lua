@@ -31,7 +31,11 @@ local TaskParam = Class({
 function TaskParam:defaultvalue()
     for k, v in pairs(self) do
         if k == "default" then
-            return v
+            if type(v) == "function" then
+                return v()
+            else
+                return v
+            end
         end
     end
 end
@@ -56,6 +60,17 @@ local Task = Class({
 function Task:_ctor(args)
     if not args.path then
         error("No task definition was provided.")
+    end
+
+    -- XXX-MJ should we just initialize all of the env here, or...
+    self.env.uname_m = function ()
+        local f, err = io.popen("uname -m")
+        if not f then
+            error("Failed to popen('uname -m'): " .. err)
+        end
+        local val = f:read()
+        f:close()
+        return val
     end
 
     assert(loadfile(args.path, "t", self.env))()
