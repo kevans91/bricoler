@@ -2,8 +2,6 @@
 
 local Fs = require 'lfs'
 
-local workdir
-
 local function mkdirp(dir)
     local attr = Fs.attributes(dir)
     if attr then
@@ -29,17 +27,35 @@ local function init(dir)
         error("Failed to enter workdir: " .. err)
     end
     os.execute("rm -rf *") -- XXX-MJ
-    workdir = dir
 end
 
-local function runtask()
-    if not workdir then
-        error("Working directory is not set.")
+local dirstack = {}
+
+local function push(dir)
+    -- No absolute paths.
+    assert(dir:sub(1, 1) ~= "/")
+
+    local ok, err = mkdirp(dir)
+    if not ok then
+        error("Failed to create subdirectory '" .. dir .. "': " .. err)
     end
-    return workdir .. "/runtask"
+    table.insert(dirstack, Fs.currentdir())
+    ok, err = Fs.chdir(dir)
+    if not ok then
+        error("Failed to enter subdirectory '" .. dir .. "': " .. err)
+    end
+end
+
+local function pop()
+    local dir = table.remove(dirstack)
+    local ok, err = Fs.chdir(dir)
+    if not ok then
+        error("Failed to enter subdirectory '" .. dir .. "': " .. err)
+    end
 end
 
 return {
     init = init,
-    runtask = runtask
+    push = push,
+    pop = pop,
 }

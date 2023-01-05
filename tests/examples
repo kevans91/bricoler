@@ -1,17 +1,31 @@
 #!/usr/bin/env atf-sh
 
-. $(atf_get_srcdir)/_env.sh
-
+#
 # Verify that the example tasks work.
+#
+
+. $(atf_get_srcdir)/_env.sh
 
 atf_test_case hello_world
 hello_world_body()
 {
 	atf_check -o inline:"Hello, world!\n" \
 	    bricoler runtask example/hello-world
+	atf_check -o inline:"Hello, markj!\n" \
+	    bricoler runtask -p addressee=markj example/hello-world
+}
+
+atf_test_case hello_input
+hello_input_body()
+{
+	atf_check -o inline:"Hello, world!\nHello, world!\n" \
+	    bricoler runtask example/hello-input
+	# XXX-MJ we only create a single instance of each task, so currently
+	# can't bind parameters for a single instance. 
 }
 
 atf_init_test_cases()
 {
 	atf_add_test_case hello_world
+	atf_add_test_case hello_input
 }

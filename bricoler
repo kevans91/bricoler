@@ -68,6 +68,8 @@ if args.runtask then
     if args.show then
         sched:print()
     else
+        Workdir.push("runtask")
         sched:run()
+        Workdir.pop()
     end
 end

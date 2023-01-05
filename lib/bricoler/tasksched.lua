@@ -2,11 +2,12 @@
 
 local Class = require 'lib.bricoler.class'
 local Util = require 'lib.bricoler.util'
+local Workdir = require 'lib.bricoler.workdir'
 
 local TaskSched = Class({
     schedule = {},              -- Tree of tasks to run.
-    universe = {},              -- Set of all known tasks, keyed by task name.
     target = "",                -- Name of the target task to run.
+    universe = {},              -- Set of all known tasks, keyed by task name.
 }, {
     Class.property("universe", "table"),
     Class.property("target", "string"),
@@ -43,7 +44,7 @@ local function visitsched(schedule, cb)
                 table.remove(name)
             end
         end
-        f(sched[1], name)
+        f(sched[1], sched, name)
     end
     _visitsched(schedule, cb, {})
 end
@@ -93,8 +94,27 @@ function TaskSched:run()
         end
     end)
 
-    visitsched(self.schedule, function (task)
-        task:run(ctx)
+    visitsched(self.schedule, function (task, sched, name)
+        local dir = table.concat(name, "/")
+        if dir == "" then
+            dir = "."
+        end
+
+        local inputs = {}
+        for k, v in pairs(sched) do
+            if type(k) == "string" then
+                local input = {}
+                for outputname, _ in pairs(v[1].outputs) do
+                    -- XXX-MJ only really works for files/dirs now.
+                    input[outputname] = k .. "/" .. outputname
+                    print("input " .. outputname .. " is " .. input[outputname])
+                end
+                inputs[k] = input
+            end
+        end
+        Workdir.push(dir)
+        task:run(ctx, inputs)
+        Workdir.pop()
     end)
 end
 

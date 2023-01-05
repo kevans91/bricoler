@@ -1,5 +1,7 @@
 -- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
 
+local Fs = require 'lfs'
+
 local Class = require 'lib.bricoler.class'
 
 local TaskInput = Class({
@@ -81,7 +83,7 @@ function Task:bind(param, val)
     self.params[param].val = val
 end
 
-function Task:run(ctx)
+function Task:run(ctx, inputs)
     self.env.print = print
     self.env.system = function (cmd)
         local res, how, status = os.execute(cmd)
@@ -94,6 +96,12 @@ function Task:run(ctx)
             error("Command '" .. cmd .. "' terminated by signal " .. status .. ".")
         end
     end
+    self.env.cd = function (dir)
+        local ok, err = Fs.chdir(dir)
+        if not ok then
+            error("Failed to enter directory '" .. dir "': " .. err)
+        end
+    end
 
     -- Let actions access parameters directly instead of going through the
     -- "val" field.
@@ -101,7 +109,7 @@ function Task:run(ctx)
     for k, v in pairs(self.params) do
         params[k] = v:value()
     end
-    self.action(ctx, params)
+    self.action(ctx, params, inputs, {})
 end
 
 return Task

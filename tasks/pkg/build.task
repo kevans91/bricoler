@@ -1,10 +1,18 @@
 -- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
 
 Params = {
+    configure_args = {
+        descr = "parameters to pkg's configure script",
+        default = "",
+    },
+    configure_env = {
+        descr = "environment variables to add to configure script",
+        default = "",
+    }
 }
 
 Inputs = {
-    checkout = {
+    pkg = {
         task = "git/checkout",
         params = {
             repo = "https://github.com/freebsd/pkg",
@@ -13,10 +21,14 @@ Inputs = {
     }
 }
 
-function Run(ctx, params, inputs, outputs)
-    -- XXX-MJ replace hard-coded "checkout" path
-    system("checkout/configure")
+function Run(ctx, params, inputs, _)
+    -- pkg's build doesn't quite work unless run from inside the checkout.
+    cd(inputs.pkg.checkout)
+    system(params.configure_env .. " ./configure " .. params.configure_args)
     system("make -j " .. ctx.maxjobs)
+    -- XXX-MJ "pkgconf" needs to be installed for this to work.
+    -- We need to check for it somehow.
+    system("kyua -v parallelism=" .. ctx.maxjobs .. " test")
 end
 
 -- vi: ft=lua

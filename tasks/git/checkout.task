@@ -1,3 +1,5 @@
+-- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+
 Descr = [[
 Make a git repository available, either by cloning an existing repository,
 or updating an existing clone.
@@ -10,21 +12,19 @@ Params = {
     },
     branch = {
         descr = "git branch to check out."
-    }
+    },
 }
 
 Outputs = {
     checkout = {
-        descr = "A path to the checked out repository.",
+        descr = "A copy of the checked out repository.",
     }
 }
 
-function Run(_, params)
-    local cmd = "git clone "
-    if params.branch then
-        cmd = cmd .. "--branch=" .. params.branch .. " "
-    end
-    cmd = cmd .. params.repo .. " checkout"
+function Run(_, params, _, outputs)
+    local branch = params.branch and "--branch=" .. params.branch or ""
+    -- XXX-MJ should be outputs.checkout
+    local cmd = ("git clone --depth=1 %s %s %s"):format(branch, params.repo, "checkout")
     system(cmd)
 end
 
