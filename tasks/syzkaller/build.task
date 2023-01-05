@@ -1,0 +1,35 @@
+-- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+
+Descr = [[
+Compile syzkaller, a coverage-guided operating system fuzzer, and optionally
+run its regression tests.
+]]
+
+Params = {
+    test = {
+        descr = "run regression tests after building",
+        default = true,
+    }
+}
+
+Inputs = {
+    syzkaller = {
+        task = "git/checkout",
+        params = {
+            repo = "https://github.com/google/syzkaller",
+        }
+    }
+}
+
+function Run(_, params, inputs)
+    cd(inputs.syzkaller.checkout)
+    -- XXX-MJ need some way of checking for packages, need at least gmake and gcc
+    -- XXX-MJ want parameters for overriding the target arch etc.
+    -- XXX-MJ consider limiting parallelism since this build is very resource-intensive.
+    system("gmake")
+    if params.test then
+        system("gmake test")
+    end
+end
+
+-- vi: ft=lua

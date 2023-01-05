@@ -8,6 +8,10 @@ Params = {
     configure_env = {
         descr = "environment variables to add to configure script",
         default = "",
+    },
+    test = {
+        descr = "run regression tests after building",
+        default = true,
     }
 }
 
@@ -28,7 +32,9 @@ function Run(ctx, params, inputs, _)
     system("make -j " .. ctx.maxjobs)
     -- XXX-MJ "pkgconf" needs to be installed for this to work.
     -- We need to check for it somehow.
-    system("kyua -v parallelism=" .. ctx.maxjobs .. " test")
+    if params.test then
+        system("kyua -v parallelism=" .. ctx.maxjobs .. " test")
+    end
 end
 
 -- vi: ft=lua

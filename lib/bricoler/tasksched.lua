@@ -107,7 +107,6 @@ function TaskSched:run()
                 for outputname, _ in pairs(v[1].outputs) do
                     -- XXX-MJ only really works for files/dirs now.
                     input[outputname] = k .. "/" .. outputname
-                    print("input " .. outputname .. " is " .. input[outputname])
                 end
                 inputs[k] = input
             end
@@ -133,8 +132,9 @@ function TaskSched:print()
             print(prefix(level) .. taskname)
         end
         for name, param in pairs(task.params) do
+            -- XXX-MJ doesn't show default values specified in an input?
             local val = param:value() or (param.required and "???") or ""
-            print(prefix(level + 1) .. "P " .. name .. "=" .. val)
+            print(prefix(level + 1) .. "P " .. name .. "=" .. tostring(val))
         end
         for name, _ in pairs(task.outputs) do
             print(prefix(level + 1) .. "O " .. name)
