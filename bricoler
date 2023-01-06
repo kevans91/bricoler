@@ -77,4 +77,6 @@ if args.runtask then
         sched:run()
         Workdir.pop()
     end
+elseif args.newjob then
+    local db = JobDB("./jobs.db")
 end

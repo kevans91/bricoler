@@ -21,6 +21,10 @@ Params = {
         descr = "Force a clean build of the target.",
         default = false,
     },
+    noroot = {
+        descr = "Run install targets in rootless mode, i.e., add -DNO_ROOT",
+        default = true,
+    },
     kernconf = {
         descr = "kernel configuration to use for {build,install}kernel targets"
     },
@@ -52,16 +56,21 @@ function Run(ctx, params, inputs, outputs)
         params.make_args = params.make_args .. " WITHOUT_CLEAN="
     end
 
-    params.make_args = params.make_args .. " DESTDIR=" .. outputs.stagedir
+    params.make_args = params.make_args .. " DESTDIR=" .. realpath(".") .. "/" .. outputs.stagedir
     if params.kernconf then
         params.make_args = params.make_args .. " KERNCONF=" .. params.kernconf
     end
     if params.toolchain then
         params.make_args = params.make_args .. " CROSS_TOOLCHAIN=" .. params.toolchain
     end
+    if params.noroot then
+        params.make_args = params.make_args .. " -DNO_ROOT"
+    end
 
     local env = "MAKEOBJDIRPREFIX=" .. realpath(".") .. "/" .. outputs.obj ..
                 " " .. params.make_env .. " "
+
+    fs.mkdir(outputs.stagedir)
     for target in params.targets:gmatch("([^%s]+)") do
         local cmd = env .. " make -s -C " .. inputs.src.checkout ..
                     " -j " .. ctx.maxjobs ..

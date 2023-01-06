@@ -22,10 +22,16 @@ Outputs = {
 }
 
 function Run(_, params, _, outputs)
-    local branch = params.branch and "--branch=" .. params.branch or ""
-    -- XXX-MJ should be outputs.checkout
-    local cmd = ("git clone --depth=1 %s %s %s"):format(branch, params.repo, "checkout")
-    system(cmd)
+    local attr = fs.attributes(outputs.checkout)
+    if attr and fs.attributes(outputs.checkout .. "/.git") then
+        local cmd = ("git -C %s pull"):format(outputs.checkout)
+        system(cmd)
+    else
+        local branch = params.branch and "--branch=" .. params.branch or ""
+        local cmd = ("git clone --depth=1 %s %s %s")
+                    :format(branch, params.repo, outputs.checkout)
+        system(cmd)
+    end
 end
 
 -- vi: ft=lua

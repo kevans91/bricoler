@@ -8,16 +8,27 @@ Params = {
     image_type = {
         descr = "File format of the output VM image.",
         default = "raw",
+    },
+    image_fs = {
+        descr = "Filesystem used for the root of the filesystem.",
+        default = "ufs",
     }
 }
 
 Inputs = {
-    stagedir = {
+    build = {
         task = "freebsd-src/build/make",
         params = {
             targets = "buildworld buildkernel installworld installkernel distribution",
-            make_params = "-DNO_ROOT",
+            -- XXX-MJ want a += syntax for parameters?
+            make_args = "-DNO_ROOT",
         }
+    }
+}
+
+Outputs = {
+    image = {
+        descr = "Output VM image.",
     }
 }
 

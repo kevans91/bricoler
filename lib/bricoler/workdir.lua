@@ -1,6 +1,9 @@
 -- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
 
+-- XXX-MJ this file should just use posix
 local Fs = require 'lfs'
+
+local Util = require 'lib.bricoler.util'
 
 local function mkdirp(dir)
     local attr = Fs.attributes(dir)
@@ -9,6 +12,13 @@ local function mkdirp(dir)
             return nil, "Path exists"
         end
         return true
+    end
+    local parent = Util.dirname(dir)
+    if parent ~= "." then
+        local res, err = mkdirp(parent)
+        if not res then
+            return res, err
+        end
     end
     return Fs.mkdir(dir)
 end
@@ -26,7 +36,7 @@ local function init(dir)
     if not ok then
         error("Failed to enter workdir: " .. err)
     end
-    os.execute("rm -rf *") -- XXX-MJ
+    --os.execute("rm -rf *") -- XXX-MJ
 end
 
 local dirstack = {}

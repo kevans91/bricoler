@@ -141,7 +141,10 @@ function TaskSched:print()
         local params = Util.tablekeys_s(task.params)
         for _, name in ipairs(params) do
             local param = task.params[name]
-            local val = param:value() or (param.required and "???") or ""
+            local val = param:value()
+            if val == nil then
+                val = param.required and "???" or ""
+            end
             print(prefix(level + 1) .. "P " .. name .. "=" .. tostring(val))
         end
 
