@@ -5,36 +5,69 @@ Make a FreeBSD src build target, such as buildworld.
 ]]
 
 Params = {
-    target = {
-        descr = "make(1) target",
+    targets = {
+        descr = "make(1) targets, separated by spaces, e.g., 'buildworld buildkernel'",
         required = true,
     },
-    makeparams = {
-        descr = "Parameters to pass to make(1)."
+    make_env = {
+        descr = "environment variables to pass to bmake(1)",
+        default = "",
+    },
+    make_args = {
+        descr = "Command-line flags to pass to bmake(1).",
+        default = "",
     },
     clean = {
         descr = "Force a clean build of the target.",
         default = false,
+    },
+    kernconf = {
+        descr = "kernel configuration to use for {build,install}kernel targets"
+    },
+    toolchain = {
+        descr = "cross toolchain to use for the build"
     }
 }
 
 Inputs = {
-    checkout = {
+    src = {
         task = "git/checkout",
         params = {
             repo = "https://github.com/freebsd/freebsd-src",
-            branch = "main",
         }
     }
 }
 
 Outputs = {
-    objdir = {
+    obj = {
         descr = "A directory containing the unstaged output of the build."
+    },
+    stagedir = {
+        descr = "A directory containing output from install targets.",
     }
 }
 
-function Run()
+function Run(ctx, params, inputs, outputs)
+    if not params.clean then
+        params.make_args = params.make_args .. " WITHOUT_CLEAN="
+    end
+
+    params.make_args = params.make_args .. " DESTDIR=" .. outputs.stagedir
+    if params.kernconf then
+        params.make_args = params.make_args .. " KERNCONF=" .. params.kernconf
+    end
+    if params.toolchain then
+        params.make_args = params.make_args .. " CROSS_TOOLCHAIN=" .. params.toolchain
+    end
+
+    local env = "MAKEOBJDIRPREFIX=" .. realpath(".") .. "/" .. outputs.obj ..
+                " " .. params.make_env .. " "
+    for target in params.targets:gmatch("([^%s]+)") do
+        local cmd = env .. " make -s -C " .. inputs.src.checkout ..
+                    " -j " .. ctx.maxjobs ..
+                    " " .. params.make_args .. " " .. target
+        system(cmd)
+    end
 end
 
 -- vi: ft=lua

@@ -11,6 +11,10 @@ local function dirname(path)
     return Posix.libgen.dirname(path)
 end
 
+local function realpath(path)
+    return Posix.stdlib.realpath(path)
+end
+
 local function fsvisit(dir, cb)
     local attr = Fs.attributes(dir)
     if not attr then
@@ -69,6 +73,7 @@ end
 return {
     basename = basename,
     dirname = dirname,
+    realpath = realpath,
     fsvisit = fsvisit,
 
     sysctl = sysctl,

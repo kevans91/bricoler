@@ -1,0 +1,27 @@
+-- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+
+Descr = [[
+Create a FreeBSD VM image.
+]]
+
+Params = {
+    image_type = {
+        descr = "File format of the output VM image.",
+        default = "raw",
+    }
+}
+
+Inputs = {
+    stagedir = {
+        task = "freebsd-src/build/make",
+        params = {
+            targets = "buildworld buildkernel installworld installkernel distribution",
+            make_params = "-DNO_ROOT",
+        }
+    }
+}
+
+function Run()
+end
+
+-- vi: ft=lua

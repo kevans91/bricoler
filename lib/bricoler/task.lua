@@ -3,6 +3,7 @@
 local Fs = require 'lfs'
 
 local Class = require 'lib.bricoler.class'
+local Util = require 'lib.bricoler.util'
 
 local TaskInput = Class({
     descr = "",                 -- Human readable description for help messages.
@@ -117,6 +118,13 @@ function Task:run(ctx, inputs)
         if not ok then
             error("Failed to enter directory '" .. dir "': " .. err)
         end
+    end
+    self.env.realpath = function (path)
+        local res, err = Util.realpath(path)
+        if not res then
+            error("realpath('" .. path .. "') failed: " .. err)
+        end
+        return res
     end
 
     -- Let actions access parameters directly instead of going through the

@@ -3,6 +3,7 @@
 
 local Argparse = require 'argparse'
 
+local JobDB = require 'lib.bricoler.jobdb'
 local Task = require 'lib.bricoler.task'
 local TaskSched = require 'lib.bricoler.tasksched'
 local Workdir = require 'lib.bricoler.workdir'
@@ -31,23 +32,27 @@ end)
 
 local cmds = {}
 local parser = Argparse(script, "Manage and run tasks.")
+
+local workdir = os.getenv("BRICOLER_WORKDIR") or (os.getenv("HOME") .. "/bricoler")
+local taskchoices = Util.tablekeys_s(tasks)
+
 cmds.runtask = parser:command("runtask")
     :description("Run the specified task, or list available tasks.")
 cmds.runtask:flag("-s --show"):description("Print the computed task schedule.")
 cmds.runtask:option("-p --param")
     :description("Specify a parameter for one or more tasks, [task:]<param>=<value>.")
     :count("*")
-local workdir = os.getenv("BRICOLER_WORKDIR") or (os.getenv("HOME") .. "/bricoler")
 cmds.runtask:option("--workdir")
     :description("Work directory under which to run tasks. " ..
                  "Overrides ${BRICOLER_WORKDIR}.")
     :default(workdir)
-local taskchoices = Util.tablekeys(tasks)
 table.insert(taskchoices, default_task)
 cmds.runtask:argument("task")
     :description("Task name.")
     :default(default_task)
     :choices(taskchoices)
+
+cmds.newjob = parser:command("newjob")
 
 local args = parser:parse()
 
