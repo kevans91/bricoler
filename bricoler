@@ -37,18 +37,19 @@ local workdir = os.getenv("BRICOLER_WORKDIR") or (os.getenv("HOME") .. "/bricole
 local taskchoices = Util.tablekeys_s(tasks)
 
 cmds.runtask = parser:command("runtask")
-    :description("Run the specified task, or list available tasks.")
-cmds.runtask:flag("-s --show"):description("Print the computed task schedule.")
+    :description("Run the specified task, or list available tasks")
+cmds.runtask:flag("-s --show"):description("Print the computed task schedule")
 cmds.runtask:option("-p --param")
-    :description("Specify a parameter for one or more tasks, [task:]<param>=<value>.")
+    :description("Specify a parameter for one or more tasks, [task:]<param>=<value>")
     :count("*")
+cmds.runtask:flag("-c --clean")
+    :description("Clean the work directory before running any tasks")
 cmds.runtask:option("--workdir")
-    :description("Work directory under which to run tasks. " ..
-                 "Overrides ${BRICOLER_WORKDIR}.")
+    :description("Work directory under which to run tasks, overrides ${BRICOLER_WORKDIR}")
     :default(workdir)
 table.insert(taskchoices, default_task)
 cmds.runtask:argument("task")
-    :description("Task name.")
+    :description("Task name")
     :default(default_task)
     :choices(taskchoices)
 
@@ -64,7 +65,9 @@ if args.runtask then
         local list = Util.tablekeys(tasks)
         table.sort(list)
         for _, v in ipairs(list) do
-            print(v)
+            if not v:match("^example/") then
+                print(v)
+            end
         end
         os.exit(0)
     end
@@ -74,6 +77,9 @@ if args.runtask then
         sched:print()
     else
         Workdir.push("runtask")
+        if args.clean then
+            Workdir.clean()
+        end
         sched:run()
         Workdir.pop()
     end

@@ -23,20 +23,29 @@ local function mkdirp(dir)
     return Fs.mkdir(dir)
 end
 
+local function clean()
+    local cwd = Fs.currentdir()
+    if not cwd:match("bricoler") then
+        error("Cowardly refusing to run 'rm -rf *' in " .. cwd)
+    end
+    os.execute("rm -rf *")
+end
+
 local function init(dir)
     local ok, err = mkdirp(dir)
     if not ok then
         error("Failed to initialize workdir: " .. err)
     end
-    ok, err = mkdirp(dir .. "/runtask")
-    if not ok then
-        error("Failed to initialize runtask workdir: " .. err)
+    for _, subdir in ipairs({"jobs", "runtask"}) do
+        ok, err = mkdirp(dir .. "/" .. subdir)
+        if not ok then
+            error("Failed to create '" .. subdir .. "' subdir: " .. err)
+        end
     end
     ok, err = Fs.chdir(dir)
     if not ok then
         error("Failed to enter workdir: " .. err)
     end
-    --os.execute("rm -rf *") -- XXX-MJ
 end
 
 local dirstack = {}
@@ -65,6 +74,7 @@ local function pop()
 end
 
 return {
+    clean = clean,
     init = init,
     push = push,
     pop = pop,

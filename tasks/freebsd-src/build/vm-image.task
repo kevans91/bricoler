@@ -6,12 +6,21 @@ Create a FreeBSD VM image.
 
 Params = {
     image_type = {
-        descr = "File format of the output VM image.",
+        descr = "File format of the output VM image",
         default = "raw",
     },
     image_fs = {
-        descr = "Filesystem used for the root of the filesystem.",
+        descr = "Filesystem used for the root of the filesystem",
         default = "ufs",
+    },
+    image_size = {
+        descr = "Filesystem image size",
+    },
+    ssh_users = {
+        descr = "List of users for which to install SSH keys",
+    },
+    pkgs = {
+        descr = "List of packages to install upon first boot",
     }
 }
 
@@ -20,10 +29,9 @@ Inputs = {
         task = "freebsd-src/build/make",
         params = {
             targets = "buildworld buildkernel installworld installkernel distribution",
-            -- XXX-MJ want a += syntax for parameters?
-            make_args = "-DNO_ROOT",
-        }
-    }
+            noroot = true,
+        },
+    },
 }
 
 Outputs = {
@@ -32,7 +40,12 @@ Outputs = {
     }
 }
 
-function Run()
+function Run(_, _, inputs, outputs)
+    -- An mtree manifest is always interpreted relative to the cwd.
+    cd(inputs.build.stagedir)
+
+    -- XXX-MJ METALOG should be inputs.build.metalog
+    local cmd = "makefs -t ffs " .. outputs.image .. " METALOG"
 end
 
 -- vi: ft=lua

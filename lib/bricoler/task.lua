@@ -127,6 +127,7 @@ function Task:run(ctx, inputs)
         return res
     end
     self.env.fs = Fs
+    self.env.pairs, self.env.ipairs, self.env.type = pairs, ipairs, type
 
     -- Let actions access parameters directly instead of going through the
     -- "val" field.

@@ -6,19 +6,19 @@ Make a FreeBSD src build target, such as buildworld.
 
 Params = {
     targets = {
-        descr = "make(1) targets, separated by spaces, e.g., 'buildworld buildkernel'",
+        descr = "Make(1) targets, separated by spaces, e.g., 'buildworld buildkernel'",
         required = true,
     },
     make_env = {
-        descr = "environment variables to pass to bmake(1)",
+        descr = "Environment variables to pass to bmake(1)",
         default = "",
     },
     make_args = {
-        descr = "Command-line flags to pass to bmake(1).",
+        descr = "Command-line flags to pass to bmake(1)",
         default = "",
     },
     clean = {
-        descr = "Force a clean build of the target.",
+        descr = "Force a clean build of the target",
         default = false,
     },
     noroot = {
@@ -26,11 +26,19 @@ Params = {
         default = true,
     },
     kernconf = {
-        descr = "kernel configuration to use for {build,install}kernel targets"
+        descr = "Kernel configuration to use for {build,install}kernel targets"
     },
     toolchain = {
-        descr = "cross toolchain to use for the build"
-    }
+        descr = "Cross toolchain to use for the build"
+    },
+    srcconf = {
+        descr = "Path to the src.conf file to use for the build",
+        default = "/dev/null",
+    },
+    makeconf = {
+        descr = "Path to the make.conf file to use for the build",
+        default = "/dev/null",
+    },
 }
 
 Inputs = {
@@ -48,27 +56,37 @@ Outputs = {
     },
     stagedir = {
         descr = "A directory containing output from install targets.",
+    },
+    metalog = {
+        descr = "The name of the mtree file located at the root of stagedir."
     }
 }
 
 function Run(ctx, params, inputs, outputs)
-    if not params.clean then
-        params.make_args = params.make_args .. " WITHOUT_CLEAN="
+    -- Build up the make(1) environment.
+    local objdirprefix = realpath(".") .. "/" .. outputs.obj
+    local env = "MAKEOBJDIRPREFIX=" .. objdirprefix
+    if #params.make_env > 0 then
+        env = env .. " " .. params.make_env
     end
 
-    params.make_args = params.make_args .. " DESTDIR=" .. realpath(".") .. "/" .. outputs.stagedir
-    if params.kernconf then
-        params.make_args = params.make_args .. " KERNCONF=" .. params.kernconf
+    -- Build up the make(1) parameters.  All of these could be set directly via
+    -- make_args, but all else being equal it's better to have some semantic
+    -- understanding of what the user is asking for.
+    for _, v in ipairs({
+        {"KERNCONF=", params.kernconf},
+        {"CROSS_TOOLCHAIN=", params.toolchain},
+        {"-DNO_ROOT", params.noroot},
+        {"SRCCONF=", params.srcconf},
+        {"__MAKE_CONF=", params.makeconf},
+        {"DESTDIR=", realpath(".") .. "/" .. outputs.stagedir},
+        {"WITHOUT_CLEAN=", not params.clean}
+    }) do
+        if v[2] then
+            params.make_args = params.make_args .. " " .. v[1] ..
+                               (type(v[2]) == "string" and v[1]:match("=$") and v[2] or "")
+        end
     end
-    if params.toolchain then
-        params.make_args = params.make_args .. " CROSS_TOOLCHAIN=" .. params.toolchain
-    end
-    if params.noroot then
-        params.make_args = params.make_args .. " -DNO_ROOT"
-    end
-
-    local env = "MAKEOBJDIRPREFIX=" .. realpath(".") .. "/" .. outputs.obj ..
-                " " .. params.make_env .. " "
 
     fs.mkdir(outputs.stagedir)
     for target in params.targets:gmatch("([^%s]+)") do
@@ -76,6 +94,12 @@ function Run(ctx, params, inputs, outputs)
                     " -j " .. ctx.maxjobs ..
                     " " .. params.make_args .. " " .. target
         system(cmd)
+    end
+
+    if params.noroot then
+        -- XXX-MJ this is wrong if METALOG is overridden in make_args.
+        -- XXX-MJ could do something like 'make -f /dev/null -VMETALOG params.make_args' to find it.
+        outputs.metalog = "METALOG"
     end
 end
 
