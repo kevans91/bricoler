@@ -24,7 +24,7 @@ Util.fsvisit(taskdir, function (dir, file, attr)
     local name = path:match("^" .. taskdir .. "/+(.+)%.task$")
     if name then
         -- XXX-MJ make sure there's no invalid chars.
-        tasks[name] = Task{path = path}
+        tasks[name] = Task{path = Util.realpath(path)}
     else
         Util.warn("Ignored file '" .. path .. "' in task directory.")
     end
@@ -57,7 +57,6 @@ cmds.newjob = parser:command("newjob")
 
 local args = parser:parse()
 
--- Initialize and enter the workdir.
 Workdir.init(args.workdir)
 
 if args.runtask then
@@ -84,5 +83,5 @@ if args.runtask then
         Workdir.pop()
     end
 elseif args.newjob then
-    local db = JobDB("./jobs.db")
+    local db = JobDB{path = Util.realpath("./jobs.db")}
 end

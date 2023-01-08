@@ -1,0 +1,29 @@
+-- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+
+Descr = [[
+Build the DRM kernel modules against a given FreeBSD src tree.
+]]
+
+Params = {
+    -- XXX-MJ want a way to specify target arch
+    -- XXX-MJ want a way to specify build opts? e.g., KASAN
+    -- XXX-MJ want a way to specify individual drivers?
+}
+
+Inputs = {
+    freebsd_src = {
+        task = "git/checkout",
+    },
+    drm_src = {
+        task = "git/checkout",
+    },
+}
+
+function Run(ctx, _, inputs)
+    local cmd = "make -j" .. ctx.maxjobs ..
+                " -C " .. inputs.drm_src.checkout ..
+                " SYSDIR=" .. realpath(inputs.freebsd_src.checkout) .. "/sys"
+    system(cmd)
+end
+
+-- vi: ft=lua

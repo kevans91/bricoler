@@ -1,6 +1,7 @@
 -- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
 
 local Class = require 'lib.bricoler.class'
+local Task = require 'lib.bricoler.task'
 local Util = require 'lib.bricoler.util'
 local Workdir = require 'lib.bricoler.workdir'
 
@@ -26,7 +27,7 @@ function TaskSched:_mksched(taskname)
         error("Unknown task '" .. taskname .. "'.")
     end
     local task = self.universe[taskname]
-    local sched = {task, taskname}
+    local sched = {Task{path = task.path}, taskname}
     for name, input in pairs(task.inputs) do
         sched[name] = self:_mksched(input.task)
     end

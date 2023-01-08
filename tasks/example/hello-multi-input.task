@@ -1,0 +1,21 @@
+-- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+
+Inputs = {
+    first_hello = {
+        task = 'example/hello-world',
+        params = {
+            addressee = "markj",
+        },
+    },
+    second_hello = {
+        task = 'example/hello-world',
+        params = {
+            addressee = 'jkram',
+        },
+    }
+}
+
+function Run()
+end
+
+-- vi: ft=lua

@@ -38,9 +38,27 @@ hello_output_body()
 	    bricoler runtask -p output:msg=goodbye example/hello-output-parent
 }
 
+atf_test_case hello_multi_input
+hello_multi_input_body()
+{
+        # Don't assume that dependencies are run in any particular order.
+	atf_check \
+	    -o match:"^Hello, markj!$" \
+	    -o match:"^Hello, jkram!$" \
+	    bricoler runtask example/hello-multi-input
+	atf_check \
+	    -o match:"^Hello, tuft!$" \
+	    -o match:"^Hello, scrum!$" \
+	    bricoler runtask \
+	        -p first_hello:addressee=tuft \
+		-p second_hello:addressee=scrum \
+		example/hello-multi-input
+}
+
 atf_init_test_cases()
 {
 	atf_add_test_case hello_world
 	atf_add_test_case hello_input
 	atf_add_test_case hello_output
+	atf_add_test_case hello_multi_input
 }
