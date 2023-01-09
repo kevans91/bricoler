@@ -23,10 +23,12 @@ local TaskOutput = Class({
 local TaskParam = Class({
     descr = "",                 -- Human readable description for help messages.
     required = false,           -- Is it an error to run without a binding?
+    valid = function () return true end
 }, {
     Class.property("descr", "string"),
     Class.property("required", "boolean"),
     Class.property("default"),
+    Class.property("valid"),
 })
 
 function TaskParam:defaultvalue()
@@ -95,7 +97,13 @@ end
 
 function Task:bind(param, val)
     if not self.params[param] then
-        error("Binding non-existent parameter '" .. param .. "'.")
+        error("Binding non-existent parameter '" .. param .. "'")
+    end
+    local validator = self.params[param].valid
+    if val ~= nil and validator then
+        if type(validator) == "function" and not validator(val) then
+            error("Validation of parameter '" .. param .. "' value '" .. tostring(val) .. "' failed")
+        end
     end
     self.params[param].val = val
 end
@@ -113,6 +121,17 @@ function Task:run(ctx, inputs)
             error("Command '" .. cmd .. "' terminated by signal " .. status .. ".")
         end
     end
+    self.env.writefile = function (file, str)
+        local f, err = io.open(file, "w")
+        if not f then
+            error("Failed to open '" .. file .. "': " .. err)
+        end
+        _, err = f:write(str)
+        if err then
+            error("Failed to write to '" .. file .. "': " .. err)
+        end
+        f:close()
+    end
     self.env.cd = function (dir)
         local ok, err = Fs.chdir(dir)
         if not ok then
@@ -126,6 +145,7 @@ function Task:run(ctx, inputs)
         end
         return res
     end
+    self.env.dirname, self.env.basename = Util.dirname, Util.basename
     self.env.fs = Fs
     self.env.pairs, self.env.ipairs, self.env.type = pairs, ipairs, type
 

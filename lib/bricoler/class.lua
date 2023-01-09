@@ -31,15 +31,17 @@ local function class(proto, props)
     c.__call = function(self, ...)
         local object = deepcopy(self._proto, {})
         if select("#", ...) ~= 1 then
-            error("Constructors take a single table parameter.")
+            error("Constructors take a single table parameter")
         end
         local t = select(1, ...)
         if type(t) ~= "table" then
-            error("Constructor parameter must be a table.")
+            error("Constructor parameter must be a table")
         end
         for k, v in pairs(t) do
             if self._props[k] then
                 object[k] = self._props[k](v)
+            else
+                error("Unknown class property '" .. k .. "'")
             end
         end
         return setmetatable(object, self):_ctor(t)
@@ -52,7 +54,7 @@ local function property(field, t)
         if not t or type(v) == t then
             return v
         else
-            error("A value for property '" .. field .. "' must have type " .. t .. ".")
+            error("A value for property '" .. field .. "' must have type " .. t)
         end
     end}
 end

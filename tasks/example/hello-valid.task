@@ -1,0 +1,14 @@
+-- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+
+Params = {
+    msg = {
+        descr = "A message to print",
+        valid = function (v) return v == "This is the only valid message." end
+    }
+}
+
+function Run(_, params)
+    print(params.msg)
+end
+
+-- vi: ft=lua

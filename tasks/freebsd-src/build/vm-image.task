@@ -8,16 +8,19 @@ Params = {
     image_type = {
         descr = "File format of the output VM image",
         default = "raw",
+        valid = function (v) return v == "raw" end
     },
     image_fs = {
         descr = "Filesystem used for the root of the filesystem",
         default = "ufs",
+        valid = function (v) return v == "ufs" end
     },
     image_size = {
         descr = "Filesystem image size",
     },
     ssh_users = {
         descr = "List of users for which to install SSH keys",
+        valid = function (v) return v == "root" end
     },
     pkgs = {
         descr = "List of packages to install upon first boot",
@@ -36,16 +39,121 @@ Inputs = {
 
 Outputs = {
     image = {
-        descr = "Output VM image.",
-    }
+        descr = "Output VM image",
+    },
+    ssh_keys = {
+        descr = "Directory containing SSH private keys, id_ed25519_<user>"
+    },
 }
 
-function Run(_, _, inputs, outputs)
+function Run(_, params, inputs, outputs)
+    -- XXX-MJ need more formality in the way that outputs are defined.
+    local keydir = realpath(".") .. "/" .. outputs.ssh_keys
+    local imagedir = realpath(".") .. "/" .. outputs.image
+    system("mkdir -p " .. keydir)
+    system("mkdir -p " .. imagedir)
+
     -- An mtree manifest is always interpreted relative to the cwd.
     cd(inputs.build.stagedir)
 
-    -- XXX-MJ METALOG should be inputs.build.metalog
-    local cmd = "makefs -t ffs " .. outputs.image .. " METALOG"
+    if params.ssh_users then
+        local keypath = "./root/.ssh/id_ed25519_root"
+        local keygen = "ssh-keygen -t ed25519 -N \"\" -f " .. keypath
+        -- XXX-MJ yuck
+        system("mkdir -p " .. dirname(keypath))
+        system("yes | " .. keygen)
+        system("cat " .. keypath .. ".pub > ./root/.ssh/authorized_keys")
+        system("cp " .. keypath .. " " .. keydir)
+        system("echo ./root type=dir >> METALOG")
+        system("echo ./root/.ssh type=dir uname=root gname=wheel mode=0700 >> METALOG")
+        system("echo ./root/.ssh/authorized_keys type=file uname=root gname=wheel mode=0755 >> METALOG")
+    end
+
+    if params.pkgs then
+        system("mkdir -p ./tmp/pkg")
+        -- XXX-MJ ABI is hard-coded
+        writefile("./tmp/pkg/FreeBSD.conf", [[
+FreeBSD: {
+    url: "pkg+http://pkg.FreeBSD.org/FreeBSD:14:amd64/latest",
+    mirror_type: "srv",
+    signature_type: "fingerprints",
+    fingerprints: "/usr/share/keys/pkg",
+    enabled: yes
+}
+]])
+
+        -- XXX-MJ ABI is hard-coded
+        local pkgprefix = "INSTALL_AS_USER=1 pkg " ..
+                          "-o ASSUME_ALWAYS_YES=true " ..
+                          "-o PKG_CACHEDIR=./var/cache/pkg " ..
+                          "-o REPOS_DIR=./tmp/pkg " ..
+                          "-o PKG_DBDIR=./var/db/pkg " ..
+                          "-o ABI=FreeBSD:14:amd64 "
+        system(pkgprefix .. "update")
+        system(pkgprefix .. "fetch --dependencies -o ./root/bootstrap pkg")
+        system(pkgprefix .. "fetch --dependencies -o ./root/pkg " .. params.pkgs)
+        system("pkg repo ./root/pkg")
+
+        system("echo ./root/pkg type=dir uname=root gname=wheel mode=0750 >> METALOG")
+        system("echo ./root/pkg/All type=dir uname=root gname=wheel mode=0750 >> METALOG")
+        system("echo ./root/bootstrap type=dir uname=root gname=wheel mode=0750 >> METALOG")
+        system("echo ./root/bootstrap/All type=dir uname=root gname=wheel mode=0750 >> METALOG")
+
+        -- XXX-MJ this hard-codes the subdirectories
+        system([[
+for file in $(find ./root/pkg -type f); do
+    echo ./${file} type=file uname=root gname=wheel mode=0640 >> METALOG
+done
+for file in $(find ./root/bootstrap -type f); do
+    echo ./${file} type=file uname=root gname=wheel mode=0640 >> METALOG
+done
+for file in $(find ./var/cache/pkg -type f); do
+    echo ./${file} type=file uname=root gname=wheel mode=0640 >> METALOG
+done
+]])
+
+        system("mkdir -p ./usr/local/etc/pkg/repos")
+        writefile("./usr/local/etc/pkg/repos/local.conf", [[
+local: {
+    url: "file:///root/pkg",
+}
+]])
+        system("echo ./usr/local/etc type=dir uname=root gname=wheel mode=0744 >> METALOG")
+        system("echo ./usr/local/etc/pkg type=dir uname=root gname=wheel mode=0744 >> METALOG")
+        system("echo ./usr/local/etc/pkg/repos type=dir uname=root gname=wheel mode=0744 >> METALOG")
+        system("echo ./usr/local/etc/pkg/repos/local.conf type=file uname=root gname=wheel mode=0644 >> METALOG")
+    end
+
+    writefile("./etc/fstab", [[
+/dev/gpt/rootfs /       ufs     rw      0       0
+/dev/gpt/swap   none    swap    sw      0       0
+none            /dev/fd fdescfs rw      0       0
+]])
+    system("echo ./etc/fstab type=file uname=root gname=wheel mode=0644 >> METALOG")
+
+    writefile("./firstboot", "")
+    system("echo ./firstboot type=file uname=root gname=wheel mode=0644 >> METALOG")
+
+    -- Create the ESP.
+    system("mkdir -p ./boot/efi/EFI/BOOT")
+    system("cp -f ./boot/loader.efi ./boot/efi/EFI/BOOT/bootx64.efi")
+    local cmd = "makefs -t msdos -o fat_type=16 -o sectors_per_cluster=1 -o volume_label=EFISYS -s 4096k " ..
+                imagedir .. "/vm.efi ./boot/efi"
+    system(cmd)
+    if params.image_fs == "ufs" then
+        -- XXX-MJ METALOG should be inputs.build.metalog
+        cmd = "makefs -t ffs -o softupdates=1 -o version=2 -D " ..
+              imagedir .. "/image.fs METALOG"
+        if params.image_size then
+            cmd = cmd .. " -s " .. params.image_size
+        end
+        system(cmd)
+    end
+
+    cmd = "mkimg -s gpt -f raw -S 512 -b ./boot/pmbr -p freebsd-boot/bootfs:=./boot/gptboot -p efi:=" ..
+          imagedir .. "/vm.efi -p freebsd-swap/swap::8G -p freebsd-ufs/rootfs:=" ..
+          imagedir .. "/image.fs -o " .. imagedir .. "/image.raw"
+    system(cmd)
 end
 
--- vi: ft=lua
+-- vi:ft=lua

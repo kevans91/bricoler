@@ -13,7 +13,7 @@ hello_world_body()
 	    bricoler runtask example/hello-world
 	atf_check -o inline:"Hello, markj!\n" \
 	    bricoler runtask -p addressee=markj example/hello-world
-	atf_check -o empty -e match:"Binding non-existent parameter 'addresseee'." \
+	atf_check -o empty -e match:"Binding non-existent parameter 'addresseee'" \
 	    -s not-exit:0 \
 	    bricoler runtask -p addresseee=markj example/hello-world
 }
@@ -55,10 +55,21 @@ hello_multi_input_body()
 		example/hello-multi-input
 }
 
+atf_test_case hello_valid
+hello_valid_body()
+{
+	atf_check -o inline:"This is the only valid message.\n" \
+	    bricoler runtask -p msg="This is the only valid message." example/hello-valid
+	atf_check -o empty -s not-exit:0 \
+	    -e match:"Validation of parameter 'msg' value 'plibt' failed" \
+	    bricoler runtask -p msg="plibt" example/hello-valid
+}
+
 atf_init_test_cases()
 {
 	atf_add_test_case hello_world
 	atf_add_test_case hello_input
 	atf_add_test_case hello_output
 	atf_add_test_case hello_multi_input
+	atf_add_test_case hello_valid
 }
