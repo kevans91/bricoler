@@ -56,6 +56,13 @@ CREATE TABLE job_bindings (
     param_name TEXT NOT NULL,
     param_value TEXT NOT NULL
 );
+
+-- XXX-MJ start/stop timestamps
+-- XXX-MJ completion status
+CREATE TABLE task_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_name TEXT NOT NULL
+);
         ]])
     if not sqlok(err) then
         error("Failed to initialize jobs database: " .. self:_errmsg())

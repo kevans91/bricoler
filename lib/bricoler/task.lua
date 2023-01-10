@@ -161,6 +161,7 @@ function Task:run(ctx, inputs)
         outputs[k] = k
     end
     self.action(ctx, params, inputs, outputs)
+    return outputs
 end
 
 return Task

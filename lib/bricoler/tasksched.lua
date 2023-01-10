@@ -112,15 +112,20 @@ function TaskSched:run()
             if type(k) == "string" then
                 local input = {}
                 for outputname, _ in pairs(v[1].outputs) do
-                    -- XXX-MJ only really works for files/dirs now.
-                    input[outputname] = k .. "/" .. outputname
+                    local val = v[3][outputname]
+                    -- XXX-MJ this is too magical.
+                    if val == outputname then
+                        val = k .. "/" .. outputname
+                    end
+                    input[outputname] = val
                 end
                 inputs[k] = input
             end
         end
         Workdir.push(dir)
-        task:run(ctx, inputs)
+        local outputs = task:run(ctx, inputs)
         Workdir.pop()
+        sched[3] = outputs
     end)
 end
 

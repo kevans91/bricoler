@@ -38,7 +38,7 @@ Inputs = {
 }
 
 Outputs = {
-    image = {
+    imagefile = {
         descr = "Output VM image",
     },
     ssh_keys = {
@@ -49,7 +49,7 @@ Outputs = {
 function Run(_, params, inputs, outputs)
     -- XXX-MJ need more formality in the way that outputs are defined.
     local keydir = realpath(".") .. "/" .. outputs.ssh_keys
-    local imagedir = realpath(".") .. "/" .. outputs.image
+    local imagedir = realpath(".") .. "/" .. outputs.imagefile
     system("mkdir -p " .. keydir)
     system("mkdir -p " .. imagedir)
 
@@ -134,12 +134,25 @@ none            /dev/fd fdescfs rw      0       0
     writefile("./firstboot", "")
     system("echo ./firstboot type=file uname=root gname=wheel mode=0644 >> METALOG")
 
+    writefile("./boot/loader.conf", [[
+console="comconsole"
+]])
+    system("echo ./boot/loader.conf type=file uname=root gname=wheel mode=0644 >> METALOG")
+
+    writefile("./etc/rc.conf", [[
+hostname="freebsd-vm"
+growfs_enable="YES"
+]])
+    system("echo ./etc/rc.conf type=file uname=root gname=wheel mode=0644 >> METALOG")
+
     -- Create the ESP.
     system("mkdir -p ./boot/efi/EFI/BOOT")
     system("cp -f ./boot/loader.efi ./boot/efi/EFI/BOOT/bootx64.efi")
     local cmd = "makefs -t msdos -o fat_type=16 -o sectors_per_cluster=1 -o volume_label=EFISYS -s 4096k " ..
                 imagedir .. "/vm.efi ./boot/efi"
     system(cmd)
+
+    -- Create the main filesystem image.
     if params.image_fs == "ufs" then
         -- XXX-MJ METALOG should be inputs.build.metalog
         cmd = "makefs -t ffs -o softupdates=1 -o version=2 -D " ..
@@ -150,10 +163,13 @@ none            /dev/fd fdescfs rw      0       0
         system(cmd)
     end
 
+    -- Put them all together.
     cmd = "mkimg -s gpt -f raw -S 512 -b ./boot/pmbr -p freebsd-boot/bootfs:=./boot/gptboot -p efi:=" ..
           imagedir .. "/vm.efi -p freebsd-swap/swap::8G -p freebsd-ufs/rootfs:=" ..
           imagedir .. "/image.fs -o " .. imagedir .. "/image.raw"
     system(cmd)
+
+    outputs.imagefile = imagedir .. "/image.raw"
 end
 
 -- vi:ft=lua

@@ -1,0 +1,25 @@
+-- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+
+Params = {
+    hypervisor = {
+        descr = "Hypervisor to use, either bhyve or qemu",
+        default = "qemu",
+        valid = function (v) return v == "qemu" end,
+    },
+}
+
+Inputs = {
+    image = {
+        task = "freebsd-src/build/vm-image",
+    },
+}
+
+function Run(_, _, inputs)
+    local qemu = "qemu-system-x86_64 -nographic -m 4g -smp 4 " ..
+                 "-drive file=" .. inputs.image.imagefile .. " " ..
+                 "-device virtio-net-pci,netdev=net0 " ..
+                 "-netdev user,id=net0,restrict=y,hostfwd=tcp::8080-:22"
+    system(qemu)
+end
+
+-- vi:ft=lua
