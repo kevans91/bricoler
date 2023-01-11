@@ -5,7 +5,7 @@ Make a FreeBSD src build target, such as buildworld.
 ]]
 
 Params = {
-    targets = {
+    make_targets = {
         descr = "Make(1) targets, separated by spaces, e.g., 'buildworld buildkernel'",
         required = true,
     },
@@ -39,6 +39,9 @@ Params = {
         descr = "Path to the make.conf file to use for the build",
         default = "/dev/null",
     },
+    target = {
+        descr =  "The TARGET/TARGET_ARCH pair to use for the build",
+    }
 }
 
 Inputs = {
@@ -51,7 +54,7 @@ Inputs = {
 }
 
 Outputs = {
-    obj = {
+    objdir = {
         descr = "A directory containing the unstaged output of the build."
     },
     stagedir = {
@@ -59,15 +62,23 @@ Outputs = {
     },
     metalog = {
         descr = "The name of the mtree file located at the root of stagedir."
-    }
+    },
 }
 
 function Run(ctx, params, inputs, outputs)
     -- Build up the make(1) environment.
-    local objdirprefix = realpath(".") .. "/" .. outputs.obj
+    local objdirprefix = realpath(".") .. "/" .. outputs.objdir
     local env = "MAKEOBJDIRPREFIX=" .. objdirprefix
     if #params.make_env > 0 then
         env = env .. " " .. params.make_env
+    end
+
+    local target, target_arch
+    if params.target then
+        target, target_arch = params.target:match("^(%w+)/(%w+)$")
+        if not target then
+            target = params.target
+        end
     end
 
     -- Build up the make(1) parameters.  All of these could be set directly via
@@ -80,7 +91,9 @@ function Run(ctx, params, inputs, outputs)
         {"SRCCONF=", params.srcconf},
         {"__MAKE_CONF=", params.makeconf},
         {"DESTDIR=", realpath(".") .. "/" .. outputs.stagedir},
-        {"WITHOUT_CLEAN=", not params.clean}
+        {"WITHOUT_CLEAN=", not params.clean},
+        {"TARGET=", target},
+        {"TARGET_ARCH=", target_arch},
     }) do
         if v[2] then
             params.make_args = params.make_args .. " " .. v[1] ..
@@ -89,7 +102,11 @@ function Run(ctx, params, inputs, outputs)
     end
 
     fs.mkdir(outputs.stagedir)
-    for target in params.targets:gmatch("([^%s]+)") do
+
+    -- Build each target using a separate make invocation.  This might not be
+    -- necessary but I think the top-level target ordering is underspecified
+    -- so let's just play it safe.
+    for target in params.make_targets:gmatch("([^%s]+)") do
         local cmd = env .. " make -s -C " .. inputs.src.checkout ..
                     " -j " .. ctx.maxjobs ..
                     " " .. params.make_args .. " " .. target

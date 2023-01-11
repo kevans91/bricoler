@@ -6,6 +6,14 @@ Params = {
         default = "qemu",
         valid = function (v) return v == "qemu" end,
     },
+    growsize = {
+        descr = "Grow the disk image file to this size before booting",
+    },
+    target = {
+        descr = "FreeBSD build target",
+        default = uname_m(),
+        valid = function (v) return v == "amd64" or v == "arm64" or v == "i386" end
+    }
 }
 
 Inputs = {
@@ -14,11 +22,29 @@ Inputs = {
     },
 }
 
-function Run(_, _, inputs)
-    local qemu = "qemu-system-x86_64 -nographic -m 4g -smp 4 " ..
-                 "-drive file=" .. inputs.image.imagefile .. " " ..
+function Run(_, params, inputs)
+    if params.growsize then
+        -- XXX-MJ make sure that we're not shrinking it...
+        system("truncate -s " .. params.growsize .. " " .. inputs.image.image_file)
+    end
+
+    local qemubins = {
+        amd64 = "qemu-system-x86_64",
+        arm64 = "qemu-system-aarch64",
+        i386 = "qemu-system-i386",
+    }
+    local qemubin = qemubins[params.target]
+
+    -- XXX-MJ some way to attach a debugger to the VM
+    -- XXX-MJ at least print the command somewhere
+    local qemu = qemubin .. " -nographic -m 4g -smp 4 " ..
+                 "-drive file=" .. inputs.image.image_file .. " " ..
                  "-device virtio-net-pci,netdev=net0 " ..
-                 "-netdev user,id=net0,restrict=y,hostfwd=tcp::8080-:22"
+                 "-netdev user,id=net0,restrict=y,hostfwd=tcp::8080-:22 " ..
+                 "-gdb tcp::1234"
+    if params.target == "arm64" then
+        qemu = qemu .. " -M virt -cpu cortex-a57 -bios /usr/local/share/qemu/edk2-aarch64-code.fd"
+    end
     system(qemu)
 end
 

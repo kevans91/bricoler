@@ -5,6 +5,12 @@ Create a FreeBSD VM image.
 ]]
 
 Params = {
+    -- XXX-MJ this param maybe shouldn't exist
+    target = {
+        descr = "Target platform",
+        default = uname_m(),
+        valid = function (v) return v == "amd64" or v == "arm64" or v == "i386" end
+    },
     image_type = {
         descr = "File format of the output VM image",
         default = "raw",
@@ -31,15 +37,15 @@ Inputs = {
     build = {
         task = "freebsd-src/build/make",
         params = {
-            targets = "buildworld buildkernel installworld installkernel distribution",
+            make_targets = "buildworld buildkernel installworld installkernel distribution",
             noroot = true,
         },
     },
 }
 
 Outputs = {
-    imagefile = {
-        descr = "Output VM image",
+    image_file = {
+        descr = "Output VM disk image file",
     },
     ssh_keys = {
         descr = "Directory containing SSH private keys, id_ed25519_<user>"
@@ -49,7 +55,7 @@ Outputs = {
 function Run(_, params, inputs, outputs)
     -- XXX-MJ need more formality in the way that outputs are defined.
     local keydir = realpath(".") .. "/" .. outputs.ssh_keys
-    local imagedir = realpath(".") .. "/" .. outputs.imagefile
+    local imagedir = realpath(".") .. "/" .. outputs.image_file
     system("mkdir -p " .. keydir)
     system("mkdir -p " .. imagedir)
 
@@ -136,6 +142,7 @@ none            /dev/fd fdescfs rw      0       0
 
     writefile("./boot/loader.conf", [[
 console="comconsole"
+autoboot_delay=2
 ]])
     system("echo ./boot/loader.conf type=file uname=root gname=wheel mode=0644 >> METALOG")
 
@@ -145,9 +152,16 @@ growfs_enable="YES"
 ]])
     system("echo ./etc/rc.conf type=file uname=root gname=wheel mode=0644 >> METALOG")
 
+    local efibins = {
+        amd64 = "bootx64.efi",
+        arm64 = "bootaa64.efi",
+        i386 = "bootia32.efi",
+    }
+    local efibin = efibins[params.target]
+
     -- Create the ESP.
     system("mkdir -p ./boot/efi/EFI/BOOT")
-    system("cp -f ./boot/loader.efi ./boot/efi/EFI/BOOT/bootx64.efi")
+    system("cp -f ./boot/loader.efi ./boot/efi/EFI/BOOT/" .. efibin)
     local cmd = "makefs -t msdos -o fat_type=16 -o sectors_per_cluster=1 -o volume_label=EFISYS -s 4096k " ..
                 imagedir .. "/vm.efi ./boot/efi"
     system(cmd)
@@ -155,7 +169,7 @@ growfs_enable="YES"
     -- Create the main filesystem image.
     if params.image_fs == "ufs" then
         -- XXX-MJ METALOG should be inputs.build.metalog
-        cmd = "makefs -t ffs -o softupdates=1 -o version=2 -D " ..
+        cmd = "makefs -Z -D -t ffs -o softupdates=1 -o version=2 " ..
               imagedir .. "/image.fs METALOG"
         if params.image_size then
             cmd = cmd .. " -s " .. params.image_size
@@ -163,13 +177,15 @@ growfs_enable="YES"
         system(cmd)
     end
 
-    -- Put them all together.
+    -- Put them all together.  The main filesystem comes last in the partition
+    -- table so that it can be expanded.
+    -- XXX-MJ gptboot is only needed on x86
     cmd = "mkimg -s gpt -f raw -S 512 -b ./boot/pmbr -p freebsd-boot/bootfs:=./boot/gptboot -p efi:=" ..
           imagedir .. "/vm.efi -p freebsd-swap/swap::8G -p freebsd-ufs/rootfs:=" ..
           imagedir .. "/image.fs -o " .. imagedir .. "/image.raw"
     system(cmd)
 
-    outputs.imagefile = imagedir .. "/image.raw"
+    outputs.image_file = imagedir .. "/image.raw"
 end
 
 -- vi:ft=lua

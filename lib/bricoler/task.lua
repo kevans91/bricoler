@@ -101,7 +101,23 @@ function Task:bind(param, val)
     end
     local validator = self.params[param].valid
     if val ~= nil and validator then
-        if type(validator) == "function" and not validator(val) then
+        local f
+        if type(validator) == "function" then
+            f = validator
+        elseif type(validator) == "table" then
+            f = function (v)
+                for _, candidate in ipairs(validator) do
+                    if candidate == v then
+                        return true
+                    end
+                end
+                return false
+            end
+        else
+            error("Invalid validator type '" .. type(validator) .. "'")
+        end
+
+        if not f(val) then
             error("Validation of parameter '" .. param .. "' value '" .. tostring(val) .. "' failed")
         end
     end

@@ -3,6 +3,7 @@
 Params = {
     dataset = {
         descr = "ZFS dataset to use for VM image cloning",
+        required = true,
     },
     numvms = {
         descr = "Number of VMs to run",
@@ -19,6 +20,30 @@ Inputs = {
 }
 
 function Run()
+    mkdir("./workdir")
+    writefile("./syz-manager.conf", [[
+{
+    "target": "freebsd/amd64",
+    "http": 0.0.0.0:8081,
+    "workdir": "./workdir",
+    "image": <path to VM image file>
+    "syzkaller": <path to syzkaller checkout>
+    "procs": 2,
+    "type": "bhyve",
+    "ssh_user": "root",
+    "sshkey": <path to SSH key>
+    "kernel_obj: <path to build object directory>
+    "kernel_src": "/",
+    "vm": {
+        "bridge": <bridge interface>,
+        "count": 1,
+        "cpu": 2,
+        "mem": "2G",
+        "hostip": <bridge address>,
+        "dataset": <ZFS dataset name>,
+    }
+}
+]])
 end
 
 -- vi: ft=lua
