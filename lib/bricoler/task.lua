@@ -75,6 +75,15 @@ function Task:_ctor(args)
         f:close()
         return val
     end
+    self.env.uname_p = function ()
+        local f, err = io.popen("uname -p")
+        if not f then
+            error("failed to popen('uname -p'): " .. err)
+        end
+        local val = f:read()
+        f:close()
+        return val
+    end
 
     assert(loadfile(args.path, "t", self.env))()
 
@@ -124,6 +133,14 @@ function Task:bind(param, val)
     self.params[param].val = val
 end
 
+function Task:paramvals()
+    local params = {}
+    for k, v in pairs(self.params) do
+        params[k] = v:value()
+    end
+    return params
+end
+
 function Task:run(ctx, inputs)
     self.env.print = print
     self.env.system = function (cmd)
@@ -167,10 +184,7 @@ function Task:run(ctx, inputs)
 
     -- Let actions access parameters directly instead of going through the
     -- "val" field.
-    local params = {}
-    for k, v in pairs(self.params) do
-        params[k] = v:value()
-    end
+    local params = self:paramvals()
 
     local outputs = {}
     for k, _ in pairs(self.outputs) do

@@ -4,21 +4,24 @@ Params = {
     hypervisor = {
         descr = "Hypervisor to use, either bhyve or qemu",
         default = "qemu",
-        valid = function (v) return v == "qemu" end,
+        valid = {"qemu"},
     },
     growsize = {
         descr = "Grow the disk image file to this size before booting",
     },
     target = {
         descr = "FreeBSD build target",
-        default = uname_m(),
-        valid = function (v) return v == "amd64" or v == "arm64" or v == "i386" end
+        default = uname_m() .. "/" .. uname_p(),
+        valid = {"amd64", "amd64/amd64", "arm64", "arm64/aarch64", "i386", "i386/i386"},
     }
 }
 
 Inputs = {
     image = {
         task = "freebsd-src/build/vm-image",
+        params = {
+            target = function (params) return params.target end,
+        },
     },
 }
 
@@ -44,6 +47,8 @@ function Run(_, params, inputs)
                  "-gdb tcp::1234"
     if params.target == "arm64" then
         qemu = qemu .. " -M virt -cpu cortex-a57 -bios /usr/local/share/qemu/edk2-aarch64-code.fd"
+    elseif params.target == "i386" then
+        qemu = qemu .. " -M q35"
     end
     system(qemu)
 end

@@ -49,6 +49,7 @@ Inputs = {
         task = "git/checkout",
         params = {
             repo = "https://github.com/freebsd/freebsd-src",
+            branch = "main",
         }
     }
 }

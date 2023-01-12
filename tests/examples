@@ -59,10 +59,17 @@ atf_test_case hello_valid
 hello_valid_body()
 {
 	atf_check -o inline:"This is the only valid message.\n" \
-	    bricoler runtask -p msg="This is the only valid message." example/hello-valid
+	    bricoler runtask -p msg1="This is the only valid message." example/hello-valid
 	atf_check -o empty -s not-exit:0 \
-	    -e match:"Validation of parameter 'msg' value 'plibt' failed" \
-	    bricoler runtask -p msg="plibt" example/hello-valid
+	    -e match:"Validation of parameter 'msg1' value 'plibt' failed" \
+	    bricoler runtask -p msg1="plibt" example/hello-valid
+	atf_check -o inline:"This is the only valid message.\nhello\n" \
+	    bricoler runtask -p msg1="This is the only valid message." -p msg2="hello" \
+	    example/hello-valid
+	atf_check -o empty -s not-exit:0 \
+	    -e match:"Validation of parameter 'msg2' value 'plibt' failed" \
+	    bricoler runtask -p msg1="This is the only valid message." -p msg2=plibt \
+	    example/hello-valid
 }
 
 atf_init_test_cases()

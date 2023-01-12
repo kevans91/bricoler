@@ -5,28 +5,27 @@ Create a FreeBSD VM image.
 ]]
 
 Params = {
-    -- XXX-MJ this param maybe shouldn't exist
     target = {
         descr = "Target platform",
-        default = uname_m(),
-        valid = function (v) return v == "amd64" or v == "arm64" or v == "i386" end
+        default = uname_m() .. "/" .. uname_p(),
+        valid = {"amd64", "amd64/amd64", "arm64", "arm64/aarch64", "i386", "i386/i386"},
     },
     image_type = {
         descr = "File format of the output VM image",
         default = "raw",
-        valid = function (v) return v == "raw" end
+        valid = {"raw"},
     },
     image_fs = {
         descr = "Filesystem used for the root of the filesystem",
         default = "ufs",
-        valid = function (v) return v == "ufs" end
+        valid = {"ufs"},
     },
     image_size = {
         descr = "Filesystem image size",
     },
     ssh_users = {
         descr = "List of users for which to install SSH keys",
-        valid = function (v) return v == "root" end
+        valid = {"root"},
     },
     pkgs = {
         descr = "List of packages to install upon first boot",
@@ -39,6 +38,7 @@ Inputs = {
         params = {
             make_targets = "buildworld buildkernel installworld installkernel distribution",
             noroot = true,
+            target = function (params) return params.target end
         },
     },
 }

@@ -13,20 +13,21 @@ Params = {
 }
 
 Inputs = {
-    syzkaller = {
+    src = {
         task = "git/checkout",
         params = {
             repo = "https://github.com/google/syzkaller",
-        }
-    }
+            branch = "master",
+        },
+    },
 }
 
 function Run(_, params, inputs)
-    cd(inputs.syzkaller.checkout)
+    cd(inputs.src.checkout)
     -- XXX-MJ need some way of checking for packages, need at least gmake and gcc
     -- XXX-MJ want parameters for overriding the target arch etc.
-    -- XXX-MJ consider limiting parallelism since this build is very resource-intensive.
-    system("gmake")
+    -- Limit parallelism since the build is extremely memory-hungry.
+    system("gmake NCORES=1")
     if params.test then
         system("gmake test")
     end

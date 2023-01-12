@@ -1,14 +1,21 @@
 -- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
 
 Params = {
-    msg = {
+    msg1 = {
         descr = "A message to print",
         valid = function (v) return v == "This is the only valid message." end
+    },
+    msg2 = {
+        descr = "A second message to print",
+        valid = {"hello", "goodbye"}
     }
 }
 
 function Run(_, params)
-    print(params.msg)
+    print(params.msg1)
+    if params.msg2 then
+        print(params.msg2)
+    end
 end
 
 -- vi: ft=lua

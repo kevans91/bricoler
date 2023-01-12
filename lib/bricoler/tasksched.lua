@@ -36,8 +36,16 @@ end
 
 -- Invoke a callback on all tasks in a schedule in postorder, i.e., children are
 -- visited before parents.
-local function visitsched(schedule, cb)
+local function visitsched(schedule, cb, order)
+    if order == nil then
+        order = "postorder"
+    end
+    assert(order == "preorder" or order == "postorder")
+
     local function _visitsched(sched, f, name)
+        if order == "preorder" then
+            f(sched[1], sched, name)
+        end
         for k, v in pairs(sched) do
             if type(k) == "string" then
                 table.insert(name, k)
@@ -45,7 +53,9 @@ local function visitsched(schedule, cb)
                 table.remove(name)
             end
         end
-        f(sched[1], sched, name)
+        if order == "postorder" then
+            f(sched[1], sched, name)
+        end
     end
     _visitsched(schedule, cb, {})
 end
@@ -54,7 +64,9 @@ end
 -- form [<name>:]<param>=<value>.  These values override default parameter
 -- values.
 function TaskSched:bind(params)
-    -- First bind default values for scheduled task parameters.
+    -- First bind default and input values for scheduled task parameters.
+    -- "Input values" are those set in an input definition, wherein a parent
+    -- task specifies parameters for a direct dependency.
     visitsched(self.schedule, function (task, sched)
         for name, param in pairs(task.params) do
             task:bind(name, param:defaultvalue())
@@ -62,12 +74,14 @@ function TaskSched:bind(params)
 
         for iname, input in pairs(task.inputs) do
             for pname, param in pairs(input.params) do
-                sched[iname][1]:bind(pname, param)
+                if type(param) ~= "function" then
+                    sched[iname][1]:bind(pname, param)
+                end
             end
         end
     end)
 
-    -- Now go through user-specific parameters and bind those.
+    -- Now go through user-provided parameters and bind those.
     for _, v in ipairs(params) do
         local task, param, val = v:match("^([^=:]+):([^=]+)=(.*)$")
         if not task then
@@ -84,6 +98,18 @@ function TaskSched:bind(params)
 
         sched[1]:bind(param, val)
     end
+
+    visitsched(self.schedule, function (task, sched)
+        params = task:paramvals()
+        for iname, input in pairs(task.inputs) do
+            for pname, param in pairs(input.params) do
+                if type(param) == "function" then
+                    param = param(params)
+                    sched[iname][1]:bind(pname, param)
+                end
+            end
+        end
+    end, "preorder")
 end
 
 function TaskSched:run()

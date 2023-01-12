@@ -16,7 +16,7 @@ Params = {
 }
 
 Inputs = {
-    pkg = {
+    src = {
         task = "git/checkout",
         params = {
             repo = "https://github.com/freebsd/pkg",
@@ -27,7 +27,7 @@ Inputs = {
 
 function Run(ctx, params, inputs, _)
     -- pkg's build doesn't quite work unless run from inside the checkout.
-    cd(inputs.pkg.checkout)
+    cd(inputs.src.checkout)
     system(params.configure_env .. " ./configure " .. params.configure_args)
     system("make -j " .. ctx.maxjobs)
     -- XXX-MJ "pkgconf" needs to be installed for this to work.
