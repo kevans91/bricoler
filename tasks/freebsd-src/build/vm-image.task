@@ -153,9 +153,9 @@ growfs_enable="YES"
     system("echo ./etc/rc.conf type=file uname=root gname=wheel mode=0644 >> METALOG")
 
     local efibins = {
-        amd64 = "bootx64.efi",
-        arm64 = "bootaa64.efi",
-        i386 = "bootia32.efi",
+        ["amd64/amd64"] = "bootx64.efi",
+        ["arm64/aarch64"] = "bootaa64.efi",
+        ["i386/i386"] = "bootia32.efi",
     }
     local efibin = efibins[params.target]
 
@@ -169,11 +169,11 @@ growfs_enable="YES"
     -- Create the main filesystem image.
     if params.image_fs == "ufs" then
         -- XXX-MJ METALOG should be inputs.build.metalog
-        cmd = "makefs -Z -D -t ffs -o softupdates=1 -o version=2 " ..
-              imagedir .. "/image.fs METALOG"
+        cmd = "makefs -Z -D -t ffs -o softupdates=1 -o version=2 "
         if params.image_size then
-            cmd = cmd .. " -s " .. params.image_size
+            cmd = cmd .. "-s " .. params.image_size .. " "
         end
+        cmd = cmd .. imagedir .. "/image.fs METALOG"
         system(cmd)
     end
 
