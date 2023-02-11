@@ -7,12 +7,16 @@ or updating an existing clone.
 
 Params = {
     repo = {
-        descr = "URL for the git repository to check out.",
+        descr = "URL for the git repository to check out",
         required = true,
     },
     branch = {
-        descr = "git branch to check out."
+        descr = "git branch to check out"
     },
+    clone = {
+        descr = "Whether to clone the repository or make a symlink",
+        default = true
+    }
 }
 
 Outputs = {
@@ -23,14 +27,30 @@ Outputs = {
 
 function Run(_, params, _, outputs)
     local attr = fs.attributes(outputs.checkout)
-    if attr and fs.attributes(outputs.checkout .. "/.git") then
-        local cmd = ("git -C %s pull"):format(outputs.checkout)
-        system(cmd)
+    if params.clone then
+        if attr and fs.attributes(outputs.checkout .. "/.git") then
+            local cmd = ("git -C %s pull"):format(outputs.checkout)
+            system(cmd)
+        else
+            local branch = params.branch and "--branch=" .. params.branch or ""
+            local cmd = ("git clone --depth=1 %s %s %s")
+                        :format(branch, params.repo, outputs.checkout)
+            system(cmd)
+        end
     else
-        local branch = params.branch and "--branch=" .. params.branch or ""
-        local cmd = ("git clone --depth=1 %s %s %s")
-                    :format(branch, params.repo, outputs.checkout)
-        system(cmd)
+        -- The repo URI must be a filesystem path.
+        local uri = params.repo:match("^file://(/.*)$")
+        if not uri then
+            uri = params.repo:match("^/")
+            if not uri then
+                error("Cannot link non-local repository")
+            end
+        end
+
+        -- XXX-MJ check whether this is actually a git repo.
+        -- XXX-MJ can't use system() at the moment since it raises an error
+
+        system(("ln -s %s %s"):format(uri, outputs.checkout))
     end
 end
 
