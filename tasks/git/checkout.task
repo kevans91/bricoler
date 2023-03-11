@@ -29,6 +29,7 @@ function Run(_, params, _, outputs)
     local attr = fs.attributes(outputs.checkout)
     if params.clone then
         if attr and fs.attributes(outputs.checkout .. "/.git") then
+            -- XXX-MJ need to handle the case where fast-forward isn't possible
             local cmd = ("git -C %s pull"):format(outputs.checkout)
             system(cmd)
         else
