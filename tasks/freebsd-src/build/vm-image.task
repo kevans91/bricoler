@@ -16,18 +16,19 @@ Params = {
         valid = {"raw"},
     },
     image_fs = {
-        descr = "Filesystem used for the root of the filesystem",
+        descr = "Filesystem used for the output VM image",
         default = "ufs",
         valid = {"ufs"},
     },
     image_size = {
-        descr = "Filesystem image size",
+        descr = "Output filesystem image size",
     },
     ssh_users = {
         descr = "List of users for which to install SSH keys",
         valid = {"root"},
     },
     pkgs = {
+        -- XXX-MJ want some way to specify the source
         descr = "List of packages to install upon first boot",
     }
 }
@@ -108,13 +109,13 @@ FreeBSD: {
         -- XXX-MJ this hard-codes the subdirectories
         system([[
 for file in $(find ./root/pkg -type f); do
-    echo ./${file} type=file uname=root gname=wheel mode=0640 >> METALOG
+    echo ${file} type=file uname=root gname=wheel mode=0640 >> METALOG
 done
 for file in $(find ./root/bootstrap -type f); do
-    echo ./${file} type=file uname=root gname=wheel mode=0640 >> METALOG
+    echo ${file} type=file uname=root gname=wheel mode=0640 >> METALOG
 done
 for file in $(find ./var/cache/pkg -type f); do
-    echo ./${file} type=file uname=root gname=wheel mode=0640 >> METALOG
+    echo ${file} type=file uname=root gname=wheel mode=0640 >> METALOG
 done
 ]])
 
@@ -128,6 +129,26 @@ local: {
         system("echo ./usr/local/etc/pkg type=dir uname=root gname=wheel mode=0744 >> METALOG")
         system("echo ./usr/local/etc/pkg/repos type=dir uname=root gname=wheel mode=0744 >> METALOG")
         system("echo ./usr/local/etc/pkg/repos/local.conf type=file uname=root gname=wheel mode=0644 >> METALOG")
+
+        writefile("./etc/rc.local", [[
+set -x
+
+export PATH=${PATH}:/usr/local/sbin:/usr/local/bin
+
+if [ -f /firstboot -a -d /root/bootstrap/All ]; then
+    # Older version of pkg(7) don't use basename().
+    cd /root/bootstrap/All
+
+    pkg add *
+    pkg install -y -r local -g '*'
+    if [ $? -ne 0 ]; then
+        # There is some pkg bug that requires us to run this twice.
+        # Otherwise it'll fail when trying to update the upstream repo.
+        pkg install -y -r local -g '*'
+    fi
+fi
+]])
+        system("echo ./etc/rc.local type=file uname=root gname=wheel mode=0644 >> METALOG")
     end
 
     writefile("./etc/fstab", [[
