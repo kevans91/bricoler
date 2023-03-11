@@ -20,16 +20,42 @@ local TaskOutput = Class({
     Class.property("descr", "string"),
 })
 
+local function always_valid()
+    return true
+end
+
 local TaskParam = Class({
     descr = "",                 -- Human readable description for help messages.
     required = false,           -- Is it an error to run without a binding?
-    valid = function () return true end
+    type = "string",
+    valid = always_valid,
 }, {
+    Class.property("default"),
     Class.property("descr", "string"),
     Class.property("required", "boolean"),
-    Class.property("default"),
+    Class.property("type", "string"),
     Class.property("valid"),
 })
+
+function TaskParam:_ctor()
+    -- Infer a (Lua) type from the default value, if any.  If the default is a
+    -- bool, then make sure the value is a bool.
+    local default = rawget(self, "default")
+    if default then
+        if self.valid == always_valid then
+            if type(default) == "boolean" then
+                self.valid = function (val)
+                    return type(val) == "boolean" or
+                            (type(val) == "string" and (val == "true" or val == "false"))
+                end
+            else
+                self.valid = function (val) return type(val) == type(default) end
+            end
+        end
+        self.type = type(default)
+    end
+    return self
+end
 
 function TaskParam:defaultvalue()
     for k, v in pairs(self) do
@@ -104,12 +130,13 @@ function Task:_ctor(args)
     return self
 end
 
-function Task:bind(param, val)
-    if not self.params[param] then
-        error("Binding non-existent parameter '" .. param .. "'")
+function Task:bind(paramname, val)
+    if not self.params[paramname] then
+        error("Binding non-existent parameter '" .. paramname .. "'")
     end
-    local validator = self.params[param].valid
-    if val ~= nil and validator then
+    local param = self.params[paramname]
+    local validator = param.valid
+    if val ~= nil then
         local f
         if type(validator) == "function" then
             f = validator
@@ -127,10 +154,14 @@ function Task:bind(param, val)
         end
 
         if not f(val) then
-            error("Validation of parameter '" .. param .. "' value '" .. tostring(val) .. "' failed")
+            error("Validation of parameter '" .. paramname .. "' value '" .. tostring(val) .. "' failed")
         end
     end
-    self.params[param].val = val
+    if param.type == "boolean" and type(val) == "string" then
+        assert(val == "true" or val == "false")
+        val = val == "true" and true or false
+    end
+    param.val = val
 end
 
 function Task:paramvals()
@@ -144,14 +175,17 @@ end
 function Task:run(ctx, inputs)
     self.env.print = print
     self.env.system = function (cmd)
+        if not ctx.quiet then
+            print("Running command '\x1b[32m" .. cmd .. "\x1b[0m'")
+        end
         local res, how, status = os.execute(cmd)
         if res then
             return
         end
         if how == "exit" then
-            error("Command '" .. cmd .. "' exited with status " .. status .. ".")
+            error("Command '\x1b[31m" .. cmd .. "\x1b[0m' exited with status " .. status .. ".")
         else
-            error("Command '" .. cmd .. "' terminated by signal " .. status .. ".")
+            error("Command '\x1b[31m" .. cmd .. "\x1b[0m' terminated by signal " .. status .. ".")
         end
     end
     self.env.writefile = function (file, str)

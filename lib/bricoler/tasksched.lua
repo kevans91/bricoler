@@ -1,5 +1,7 @@
 -- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
 
+local Posix = require 'posix'
+
 local Class = require 'lib.bricoler.class'
 local Task = require 'lib.bricoler.task'
 local Util = require 'lib.bricoler.util'
@@ -114,6 +116,7 @@ end
 
 function TaskSched:run()
     local ctx = {
+        quiet = not Posix.unistd.isatty(Posix.unistd.STDOUT_FILENO),
         maxjobs = Util.sysctl("hw.ncpu"),
     }
 

@@ -27,7 +27,8 @@ local function class(proto, props)
 
     -- Instantiate a new object when the class is called.  The prototype is
     -- copied into the new object and properties given to the constructor are
-    -- checked and set.  Finally the object-specific constructor is called.
+    -- checked and set.  Finally the object-specific constructor, if any, is
+    -- called.
     c.__call = function(self, ...)
         local object = deepcopy(self._proto, {})
         if select("#", ...) ~= 1 then
