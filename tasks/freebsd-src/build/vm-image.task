@@ -1,4 +1,4 @@
--- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+-- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
 Descr = [[
 Create a FreeBSD VM image.

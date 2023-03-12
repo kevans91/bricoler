@@ -1,6 +1,16 @@
--- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+-- Copyright (c) Mark Johnston <markj@FreeBSD.org>
+
+-- XXX-MJ should this really be called vm-run?
 
 Params = {
+    numcpus = {
+        descr = "Number of CPUs to allocate to the VM",
+        default = "1", -- XXX-MJ validation for integers
+    },
+    memory = {
+        descr = "Amount of memory to allocate to the VM",
+        default = "1g",
+    },
     hypervisor = {
         descr = "Hypervisor to use, either bhyve or qemu",
         default = "qemu",
@@ -10,6 +20,7 @@ Params = {
         descr = "Grow the disk image file to this size before booting",
     },
     target = {
+        -- XXX-MJ ideally we'd infer this from the input image somehow
         descr = "FreeBSD build target",
         default = uname_m() .. "/" .. uname_p(),
         valid = {"amd64", "amd64/amd64", "arm64", "arm64/aarch64", "i386", "i386/i386"},
@@ -25,7 +36,16 @@ Inputs = {
     },
 }
 
-function Run(_, params, inputs)
+Outputs = {
+    consolelog = {
+        descr = "Console log from the VM",
+    },
+    handle = {
+        descr = "Handle to a virtual machine",
+    },
+}
+
+function Run(_, params, inputs, outputs)
     if params.growsize then
         -- XXX-MJ make sure that we're not shrinking it...
         system("truncate -s " .. params.growsize .. " " .. inputs.image.image_file)
@@ -40,7 +60,8 @@ function Run(_, params, inputs)
 
     -- XXX-MJ some way to attach a debugger to the VM
     -- XXX-MJ at least print the command somewhere
-    local qemu = qemubin .. " -nographic -m 4g -smp 4 " ..
+    local qemu = qemubin .. " -nographic -m " .. params.memory .. " " ..
+                 "-smp " .. params.numcpus .. " " ..
                  "-drive file=" .. inputs.image.image_file .. " " ..
                  "-device virtio-net-pci,netdev=net0 " ..
                  "-netdev user,id=net0,restrict=y,hostfwd=tcp::8080-:22 " ..
@@ -50,7 +71,12 @@ function Run(_, params, inputs)
     elseif params.target == "i386" then
         qemu = qemu .. " -M q35"
     end
-    system(qemu)
+
+    outputs.handle = VM{
+        cmd = qemu,
+        image = inputs.image.image_file,
+        log = outputs.consolelog,
+    }
 end
 
 -- vi:ft=lua

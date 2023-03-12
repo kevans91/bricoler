@@ -5,6 +5,7 @@ local Fs = require 'lfs'
 local Class = require 'lib.bricoler.class'
 local MTree = require 'lib.bricoler.mtree'
 local Util = require 'lib.bricoler.util'
+local VM = require 'lib.bricoler.vm'
 
 local TaskInput = Class({
     descr = "",                 -- Human readable description for help messages.
@@ -173,6 +174,22 @@ function Task:paramvals()
     return params
 end
 
+-- Define the outputs table passed to a task's Run() function.
+function Task:outputtab()
+    local outputs = {}
+    for k, _ in pairs(self.outputs) do
+        outputs[k] = k
+    end
+
+    -- Catch attempts to access undefined outputs.
+    local outputsmt = {
+        __index = function (_, k)
+            error("Task '" .. self.path .. "' does not define output '" .. k .. "'")
+        end
+    }
+    return setmetatable(outputs, outputsmt)
+end
+
 function Task:run(ctx, inputs)
     self.env.print = print
     self.env.system = function (cmd)
@@ -217,15 +234,12 @@ function Task:run(ctx, inputs)
     self.env.fs = Fs
     self.env.pairs, self.env.ipairs, self.env.type = pairs, ipairs, type
     self.env.MTree = MTree
+    self.env.VM = VM
 
     -- Let actions access parameters directly instead of going through the
     -- "val" field.
     local params = self:paramvals()
-
-    local outputs = {}
-    for k, _ in pairs(self.outputs) do
-        outputs[k] = k
-    end
+    local outputs = self:outputtab()
     self.action(ctx, params, inputs, outputs)
     return outputs
 end

@@ -1,0 +1,29 @@
+-- Copyright (c) Mark Johnston <markj@FreeBSD.org>
+
+Params = {
+    tests = {
+        descr = "Tests to run, relative to /usr/tests",
+    }
+}
+
+Inputs = {
+    VM = {
+        task = "freebsd/vm-boot",
+        -- XXX-MJ need to plumb a bunch of stuff into VM image creation 
+    }
+}
+
+function Run(_, params, inputs)
+    -- XXX-MJ hard-coded parallelism
+    local kyua = "kyua -v parallelism=4 test -k /usr/tests/Kyuafile"
+    if params.tests then
+        kyua = kyua .. " " .. params.tests
+    end
+
+    local VM = inputs.VM.handle
+    VM:boot()
+    VM:expect("send -- \"" .. kyua .. "\\n\"")
+    VM:expect("expect eof")
+end
+
+-- vi:ft=lua
