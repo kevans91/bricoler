@@ -74,11 +74,14 @@ function Run(_, params, inputs, outputs)
     if params.ssh_users then
         local keypath = "./root/.ssh/id_ed25519_root"
         local keygen = "ssh-keygen -t ed25519 -N \"\" -f " .. keypath
+
         -- XXX-MJ yuck
         system("mkdir -p " .. dirname(keypath))
         system("yes | " .. keygen)
         system("cat " .. keypath .. ".pub > ./root/.ssh/authorized_keys")
         system("cp " .. keypath .. " " .. keydir)
+
+        system("sed -i '' 's/^#PermitRootLogin no$/PermitRootLogin yes/' ./etc/ssh/sshd_config")
 
         -- XXX-MJ can infer the type
         mtree:add("./root", {type = "dir"})
@@ -174,7 +177,10 @@ autoboot_delay=2
 ]])
     mtree:add("./etc/rc.conf", {type = "file"}, [[
 hostname="freebsd-vm"
+ifconfig_DEFAULT="DHCP"
+
 growfs_enable="YES"
+sshd_enable="YES"
 ]])
 
     -- At this point we're finished writing files into the image.
