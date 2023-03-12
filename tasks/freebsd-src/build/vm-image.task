@@ -60,6 +60,14 @@ function Run(_, params, inputs, outputs)
     system("mkdir -p " .. keydir)
     system("mkdir -p " .. imagedir)
 
+    local mtree = MTree{
+        path = "./METALOG",
+        defaults = {
+            file = { uname = "root", gname = "wheel", mode = "0644" },
+            dir = { uname = "root", gname = "wheel", mode = "0755" },
+        }
+    }
+
     -- An mtree manifest is always interpreted relative to the cwd.
     cd(inputs.build.stagedir)
 
@@ -71,12 +79,16 @@ function Run(_, params, inputs, outputs)
         system("yes | " .. keygen)
         system("cat " .. keypath .. ".pub > ./root/.ssh/authorized_keys")
         system("cp " .. keypath .. " " .. keydir)
-        system("echo ./root type=dir >> METALOG")
-        system("echo ./root/.ssh type=dir uname=root gname=wheel mode=0700 >> METALOG")
-        system("echo ./root/.ssh/authorized_keys type=file uname=root gname=wheel mode=0755 >> METALOG")
+
+        -- XXX-MJ can infer the type
+        mtree:add("./root", {type = "dir"})
+        mtree:add("./root/.ssh", {type = "dir", mode = "0700"})
+        mtree:add("./root/.ssh/authorized_keys", {type = "file"})
     end
 
     if params.pkgs then
+        -- Create a local pkg repository by fetching packages from some
+        -- source (currently hard-coded to pkg.f.o).
         system("mkdir -p ./tmp/pkg")
         -- XXX-MJ ABI is hard-coded
         writefile("./tmp/pkg/FreeBSD.conf", [[
@@ -101,10 +113,10 @@ FreeBSD: {
         system(pkgprefix .. "fetch --dependencies -o ./root/pkg " .. params.pkgs)
         system("pkg repo ./root/pkg")
 
-        system("echo ./root/pkg type=dir uname=root gname=wheel mode=0750 >> METALOG")
-        system("echo ./root/pkg/All type=dir uname=root gname=wheel mode=0750 >> METALOG")
-        system("echo ./root/bootstrap type=dir uname=root gname=wheel mode=0750 >> METALOG")
-        system("echo ./root/bootstrap/All type=dir uname=root gname=wheel mode=0750 >> METALOG")
+        mtree:add("./root/pkg", {type = "dir"})
+        mtree:add("./root/pkg/All", {type = "dir"})
+        mtree:add("./root/bootstrap", {type = "dir"})
+        mtree:add("./root/bootstrap/All", {type = "dir"})
 
         -- XXX-MJ this hard-codes the subdirectories
         system([[
@@ -120,17 +132,17 @@ done
 ]])
 
         system("mkdir -p ./usr/local/etc/pkg/repos")
-        writefile("./usr/local/etc/pkg/repos/local.conf", [[
+        mtree:add("./usr/local/etc", {type = "dir"})
+        mtree:add("./usr/local/etc/pkg", {type = "dir"})
+        mtree:add("./usr/local/etc/pkg/repos", {type = "dir"})
+        mtree:add("./usr/local/etc/pkg/repos/local.conf", {type = "file"}, [[
 local: {
     url: "file:///root/pkg",
 }
 ]])
-        system("echo ./usr/local/etc type=dir uname=root gname=wheel mode=0744 >> METALOG")
-        system("echo ./usr/local/etc/pkg type=dir uname=root gname=wheel mode=0744 >> METALOG")
-        system("echo ./usr/local/etc/pkg/repos type=dir uname=root gname=wheel mode=0744 >> METALOG")
-        system("echo ./usr/local/etc/pkg/repos/local.conf type=file uname=root gname=wheel mode=0644 >> METALOG")
 
-        writefile("./etc/rc.local", [[
+        -- XXX-MJ this script should really be an rc script
+        mtree:add("./etc/rc.local", {type = "file"}, [[
 set -x
 
 export PATH=${PATH}:/usr/local/sbin:/usr/local/bin
@@ -148,30 +160,25 @@ if [ -f /firstboot -a -d /root/bootstrap/All ]; then
     fi
 fi
 ]])
-        system("echo ./etc/rc.local type=file uname=root gname=wheel mode=0644 >> METALOG")
     end
 
-    writefile("./etc/fstab", [[
+    mtree:add("./etc/fstab", {type = "file"}, [[
 /dev/gpt/rootfs /       ufs     rw      0       0
 /dev/gpt/swap   none    swap    sw      0       0
 none            /dev/fd fdescfs rw      0       0
 ]])
-    system("echo ./etc/fstab type=file uname=root gname=wheel mode=0644 >> METALOG")
-
-    writefile("./firstboot", "")
-    system("echo ./firstboot type=file uname=root gname=wheel mode=0644 >> METALOG")
-
-    writefile("./boot/loader.conf", [[
+    mtree:add("./firstboot", {type = "file"}, "")
+    mtree:add("./boot/loader.conf", {type = "file"}, [[
 console="comconsole"
 autoboot_delay=2
 ]])
-    system("echo ./boot/loader.conf type=file uname=root gname=wheel mode=0644 >> METALOG")
-
-    writefile("./etc/rc.conf", [[
+    mtree:add("./etc/rc.conf", {type = "file"}, [[
 hostname="freebsd-vm"
 growfs_enable="YES"
 ]])
-    system("echo ./etc/rc.conf type=file uname=root gname=wheel mode=0644 >> METALOG")
+
+    -- At this point we're finished writing files into the image.
+    mtree:write()
 
     local efibins = {
         ["amd64/amd64"] = "bootx64.efi",
