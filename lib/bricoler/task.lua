@@ -3,6 +3,7 @@
 local Fs = require 'lfs'
 
 local Class = require 'lib.bricoler.class'
+local MTree = require 'lib.bricoler.mtree'
 local Util = require 'lib.bricoler.util'
 
 local TaskInput = Class({
@@ -215,6 +216,7 @@ function Task:run(ctx, inputs)
     self.env.dirname, self.env.basename = Util.dirname, Util.basename
     self.env.fs = Fs
     self.env.pairs, self.env.ipairs, self.env.type = pairs, ipairs, type
+    self.env.MTree = MTree
 
     -- Let actions access parameters directly instead of going through the
     -- "val" field.

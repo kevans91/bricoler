@@ -11,8 +11,18 @@ local function class(proto, props)
         return to
     end
 
+    -- A class is its own metatable.  This __index metamethod ensures that
+    -- any defined property can be accessed even if it hasn't been set.
     local c = {}
-    c.__index = c
+    c.__index = function (t, key)
+        local mt = getmetatable(t)
+        if rawget(mt, key) then
+            return mt[key]
+        elseif mt._props[key] then
+            return nil
+        end
+        error("Unknown class property '" .. key .. "'")
+    end
 
     c._proto = proto
     c._props = {}
@@ -50,27 +60,46 @@ local function class(proto, props)
     return setmetatable(c, c)
 end
 
-local function property(field, t)
-    return {field, function (v)
-        if not t or type(v) == t then
-            return v
-        else
-            error("A value for property '" .. field .. "' must have type " .. t)
+-- A property definition is a tuple of the property name and a function which
+-- validates a value for the property.  "valid" is either a table of valid
+-- values, or a function which returns true if the value is valid and false otherwise.
+local function property(prop, t, valid)
+    assert(valid == nil or type(valid) == "table" or type(valid) == "function")
+    return {prop, function (v)
+        if t and type(v) ~= t then
+            error("Property '" .. prop .. "' must have type " .. t)
         end
+
+        if valid then
+            if type(valid) == "table" then
+                for i, candidate in ipairs(valid) do
+                    if v == candidate then
+                        break
+                    end
+                    if i == #valid then
+                        error("Property '" .. prop .. "' must be one of " .. table.concat(valid, ", "))
+                    end
+                end
+            elseif not valid(v) then
+                error("Property '" .. prop .. "' value '" .. "' is invalid")
+            end
+        end
+
+        return v
     end}
 end
 
-local m = {
+local module = {
     class = class,
-    property = property
+    property = property,
 }
 
-local mt = {
+local modulemt = {
     __call = function (_, ...) return class(...) end
 }
 
 -- A bit of magic to allow
 --     Class = require 'lib.bricoler.class'
 --     T = Class(...)
--- to work while also defining other things in the module "Class".
-return setmetatable(m, mt)
+-- to work while also exporting other things from the module.
+return setmetatable(module, modulemt)
