@@ -214,7 +214,11 @@ sshd_enable="YES"
     -- Put them all together.  The main filesystem comes last in the partition
     -- table so that it can be expanded.
     -- XXX-MJ gptboot is only needed on x86
-    cmd = "mkimg -s gpt -f raw -S 512 -b ./boot/pmbr -p freebsd-boot/bootfs:=./boot/gptboot -p efi:=" ..
+    cmd = "mkimg -s gpt -f raw -S 512 "
+    if params.target == "amd64/amd64" or params == "i386/i386" then
+        cmd = cmd .. "-b ./boot/pmbr -p freebsd-boot/bootfs:=./boot/gptboot "
+    end
+    cmd = cmd ..  "-p efi:=" ..
           imagedir .. "/vm.efi -p freebsd-swap/swap::8G -p freebsd-ufs/rootfs:=" ..
           imagedir .. "/image.fs -o " .. imagedir .. "/image.raw"
     system(cmd)
