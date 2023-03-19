@@ -9,12 +9,31 @@ Params = {
 Inputs = {
     VM = {
         task = "freebsd/vm-boot",
-        -- XXX-MJ need to plumb a bunch of stuff into VM image creation 
+        params = {
+            image = {
+                -- XXX-MJ need to plumb a bunch of stuff into VM image creation.
+                -- - sysctls (e.g. kern.ipc.tls.enabled)
+                -- - kernel modules
+                image_size = "50g",
+                pkgs = "python py39-pytest py39-scapy perl5 ksh93",
+                ssh_users = "root",
+                build = {
+                    make_args = "WITHOUT_CLANG= WITHOUT_LLD= WITHOUT_LLDB= WITHOUT_LIB32="
+                }
+            },
+        },
     }
+}
+
+Outputs = {
+    resultsdb = {
+        descr = "Results database from kyua",
+    },
 }
 
 function Run(_, params, inputs)
     -- XXX-MJ hard-coded parallelism
+    -- XXX-MJ should be an attribute of the VM
     local kyua = "kyua -v parallelism=4 test -k /usr/tests/Kyuafile"
     if params.tests then
         kyua = kyua .. " " .. params.tests
@@ -22,8 +41,12 @@ function Run(_, params, inputs)
 
     local VM = inputs.VM.handle
     VM:boot()
+    VM:expect("send -- \"sysctl kern.ipc.tls.enable=1\\n\"")
+    VM:expect("send -- \"kldload pf\\n\"")
     VM:expect("send -- \"" .. kyua .. "\\n\"")
     VM:expect("expect eof")
+
+    -- XXX-MJ download resultsdb and show the report
 end
 
 -- vi:ft=lua

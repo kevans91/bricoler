@@ -60,6 +60,9 @@ function Run(_, params, inputs, outputs)
     system("mkdir -p " .. keydir)
     system("mkdir -p " .. imagedir)
 
+    -- XXX-MJ this should avoid modifying the generated mtree and instead
+    -- make a copy.  Similarly, added files should be provided as an additional
+    -- overlay directory.
     local mtree = MTree{
         path = "./METALOG",
         defaults = {
@@ -213,7 +216,6 @@ sshd_enable="YES"
 
     -- Put them all together.  The main filesystem comes last in the partition
     -- table so that it can be expanded.
-    -- XXX-MJ gptboot is only needed on x86
     cmd = "mkimg -s gpt -f raw -S 512 "
     if params.target == "amd64/amd64" or params == "i386/i386" then
         cmd = cmd .. "-b ./boot/pmbr -p freebsd-boot/bootfs:=./boot/gptboot "

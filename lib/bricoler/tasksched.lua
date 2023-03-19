@@ -66,6 +66,21 @@ end
 -- form [<name>:]<param>=<value>.  These values override default parameter
 -- values.
 function TaskSched:bind(params)
+    local function bindval(sched, name, val)
+        if type(val) == "function" then
+            return
+        elseif type(val) == "table" then
+            if not sched[name] then
+                error("Unmatched task input '" .. name .. "'")
+            end
+            for pname, pval in pairs(val) do
+                bindval(sched[name], pname, pval)
+            end
+        else
+            sched[1]:bind(name, val)
+        end
+    end
+
     -- First bind default and input values for scheduled task parameters.
     -- "Input values" are those set in an input definition, wherein a parent
     -- task specifies parameters for a direct dependency.
@@ -76,9 +91,7 @@ function TaskSched:bind(params)
 
         for iname, input in pairs(task.inputs) do
             for pname, param in pairs(input.params) do
-                if type(param) ~= "function" then
-                    sched[iname][1]:bind(pname, param)
-                end
+                bindval(sched[iname], pname, param)
             end
         end
     end)
@@ -105,6 +118,8 @@ function TaskSched:bind(params)
         params = task:paramvals()
         for iname, input in pairs(task.inputs) do
             for pname, param in pairs(input.params) do
+                -- XXX-MJ doesn't handle parameters for anything other than
+                -- direct descendants.
                 if type(param) == "function" then
                     param = param(params)
                     sched[iname][1]:bind(pname, param)
