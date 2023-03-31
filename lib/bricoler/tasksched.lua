@@ -66,6 +66,8 @@ end
 -- form [<name>:]<param>=<value>.  These values override default parameter
 -- values.
 function TaskSched:bind(params)
+    -- XXX-MJ need some more formalism here.  What happens if the same parameter
+    -- is overridden from multiple tasks?
     local function bindval(sched, name, val)
         if type(val) == "function" then
             return

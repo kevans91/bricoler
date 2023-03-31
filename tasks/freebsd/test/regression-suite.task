@@ -14,11 +14,12 @@ Inputs = {
                 -- XXX-MJ need to plumb a bunch of stuff into VM image creation.
                 -- - sysctls (e.g. kern.ipc.tls.enabled)
                 -- - kernel modules
+                -- XXX-MJ need to provide some extra disks for the ZFS tests
                 image_size = "50g",
-                pkgs = "python py39-pytest py39-scapy perl5 ksh93",
+                pkgs = "python py39-pytest py39-scapy perl5 jq ksh93 openvpn llvm gtar",
                 ssh_users = "root",
                 build = {
-                    make_args = "WITHOUT_CLANG= WITHOUT_LLD= WITHOUT_LLDB= WITHOUT_LIB32="
+                    make_args = "WITHOUT_CLANG= WITHOUT_LLD= WITHOUT_LLDB= WITHOUT_LIB32= WITH_DTRACE_TESTS="
                 }
             },
         },
@@ -42,7 +43,8 @@ function Run(_, params, inputs)
     local VM = inputs.VM.handle
     VM:boot()
     VM:expect("send -- \"sysctl kern.ipc.tls.enable=1\\n\"")
-    VM:expect("send -- \"kldload pf\\n\"")
+    VM:expect("send -- \"sysctl vfs.aio.enable_unsafe=1\\n\"")
+    VM:expect("send -- \"kldload ipsec pf pfsync if_ovpn\\n\"")
     VM:expect("send -- \"" .. kyua .. "\\n\"")
     VM:expect("expect eof")
 
