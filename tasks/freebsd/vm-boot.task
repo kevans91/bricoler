@@ -70,14 +70,14 @@ function Run(_, params, inputs, outputs)
                  "-smp " .. params.numcpus .. " " ..
                  "-drive id=image0,file=" .. inputs.image.image_file .. " " ..
                  "-device virtio-net-pci,netdev=net0 " ..
-                 "-device virtio-blk-device,drive=image0 " ..
                  "-netdev user,id=net0,restrict=y,hostfwd=tcp::8080-:22 " ..
                  "-gdb tcp::1234"
     if params.target == "arm64/aarch64" then
         qemu = qemu .. " -M virt -cpu cortex-a57 -bios /usr/local/share/qemu/edk2-aarch64-code.fd"
     elseif params.target == "riscv/riscv64" then
         qemu = qemu .. " -M virt -bios /usr/local/share/opensbi/lp64/generic/firmware/fw_jump.elf" ..
-               " -kernel /usr/local/share/u-boot/u-boot-qemu-riscv64/u-boot.bin"
+               " -kernel /usr/local/share/u-boot/u-boot-qemu-riscv64/u-boot.bin" ..
+               " -device virtio-blk-device,drive=image0 "
     elseif params.target == "i386/i386" then
         qemu = qemu .. " -M q35"
     end
