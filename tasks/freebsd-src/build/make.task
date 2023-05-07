@@ -106,19 +106,21 @@ function Run(ctx, params, inputs, outputs)
         end
     end
 
-    fs.mkdir(outputs.stagedir)
+    mkdirp(outputs.stagedir)
 
     -- Build each target using a separate make invocation.  This might not be
     -- necessary but I think the top-level target ordering is underspecified
     -- so let's just play it safe.
     for target in params.make_targets:gmatch("([^%s]+)") do
-        local cmd = env .. " make -C " .. inputs.src.checkout ..
-                    " -j " .. ctx.maxjobs ..
-                    " " .. params.make_args .. " " .. target
         if params.quiet then
-            cmd = cmd .. " -s"
+            params.make_args = params.make_args .. " -s"
         end
-        system(cmd)
+        system(("%s make -C %s -j %d %s %s")
+               :format(env,
+                       inputs.src.checkout,
+                       ctx.maxjobs,
+                       params.make_args,
+                       target))
     end
 
     if params.noroot then

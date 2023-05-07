@@ -36,8 +36,8 @@ function TaskSched:_mksched(taskname)
     return sched
 end
 
--- Invoke a callback on all tasks in a schedule in postorder, i.e., children are
--- visited before parents.
+-- Invoke a callback on all tasks in a schedule in post-order, i.e., children
+-- are visited before parents.
 function TaskSched:_visit(cb, order)
     if order == nil then
         order = "postorder"

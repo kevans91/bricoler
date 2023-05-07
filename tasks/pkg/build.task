@@ -1,4 +1,4 @@
--- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+-- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
 Params = {
     configure_args = {
@@ -25,15 +25,33 @@ Inputs = {
     }
 }
 
-function Run(ctx, params, inputs, _)
-    -- pkg's build doesn't quite work unless run from inside the checkout.
-    cd(inputs.src.checkout)
-    system(params.configure_env .. " ./configure " .. params.configure_args)
-    system("make -j " .. ctx.maxjobs)
+Outputs = {
+    objdir = {
+        descr = "Object directory for the build",
+    },
+    test_results = {
+        descr = "Test suite results",
+    },
+}
+
+function Run(ctx, params, inputs, outputs)
+    mkdirp(outputs.objdir)
+    local oldpwd = cd(outputs.objdir)
+
+    system(("%s %s/%s/configure %s")
+           :format(params.configure_env,
+                   oldpwd, inputs.src.checkout,
+                   params.configure_args))
+    system(("make -j %d")
+           :format(ctx.maxjobs))
+
     -- XXX-MJ "pkgconf" needs to be installed for this to work.
     -- We need to check for it somehow.
     if params.test then
-        system("kyua -v parallelism=" .. ctx.maxjobs .. " test")
+        mkdirp(oldpwd .. "/" .. outputs.test_results)
+        system(("kyua -v parallelism=%d test -r %s")
+               :format(ctx.maxjobs,
+                       oldpwd .. "/" .. outputs.test_results .. "/kyua.db"))
     end
 end
 

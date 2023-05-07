@@ -1,4 +1,4 @@
--- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+-- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
 Descr = [[
 Build the DRM kernel modules against a given FreeBSD src tree.
@@ -20,10 +20,10 @@ Inputs = {
 }
 
 function Run(ctx, _, inputs)
-    local cmd = "make -j" .. ctx.maxjobs ..
-                " -C " .. inputs.drm_src.checkout ..
-                " SYSDIR=" .. realpath(inputs.freebsd_src.checkout) .. "/sys"
-    system(cmd)
+    system(("make -j %d -C %s SYSDIR=%s")
+           :format(ctx.maxjobs,
+                   inputs.drm_src.checkout,
+                   realpath(inputs.freebsd_src.checkout) .. "/sys"))
 end
 
 -- vi: ft=lua

@@ -52,7 +52,8 @@ Outputs = {
 function Run(_, params, inputs, outputs)
     if params.growsize then
         -- XXX-MJ make sure that we're not shrinking it...
-        system("truncate -s " .. params.growsize .. " " .. inputs.image.image_file)
+        system(("truncate -s %s %s")
+               :format(params.growsize, inputs.image.image_file))
     end
 
     local qemubins = {

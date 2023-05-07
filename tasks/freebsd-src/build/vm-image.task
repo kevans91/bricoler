@@ -57,8 +57,8 @@ function Run(_, params, inputs, outputs)
     -- XXX-MJ need more formality in the way that outputs are defined.
     local keydir = realpath(".") .. "/" .. outputs.ssh_keys
     local imagedir = realpath(".") .. "/" .. outputs.image_file
-    system("mkdir -p " .. keydir)
-    system("mkdir -p " .. imagedir)
+    mkdirp(keydir)
+    mkdirp(imagedir)
 
     -- XXX-MJ this should avoid modifying the generated mtree and instead
     -- make a copy.  Similarly, added files should be provided as an additional
@@ -79,7 +79,7 @@ function Run(_, params, inputs, outputs)
         local keygen = "ssh-keygen -t ed25519 -N \"\" -f " .. keypath
 
         -- XXX-MJ yuck
-        system("mkdir -p " .. dirname(keypath))
+        mkdirp(dirname(keypath))
         system("yes | " .. keygen)
         system("cat " .. keypath .. ".pub > ./root/.ssh/authorized_keys")
         system("cp " .. keypath .. " " .. keydir)
@@ -95,7 +95,7 @@ function Run(_, params, inputs, outputs)
     if params.pkgs then
         -- Create a local pkg repository by fetching packages from some
         -- source (currently hard-coded to pkg.f.o).
-        system("mkdir -p ./tmp/pkg")
+        mkdirp("tmp/pkg")
         -- XXX-MJ ABI is hard-coded
         writefile("./tmp/pkg/FreeBSD.conf", [[
 FreeBSD: {
@@ -137,7 +137,7 @@ for file in $(find ./var/cache/pkg -type f); do
 done
 ]])
 
-        system("mkdir -p ./usr/local/etc/pkg/repos")
+        mkdirp("usr/local/etc/pkg/repos")
         mtree:add("./usr/local/etc", {type = "dir"})
         mtree:add("./usr/local/etc/pkg", {type = "dir"})
         mtree:add("./usr/local/etc/pkg/repos", {type = "dir"})
@@ -198,16 +198,16 @@ sshd_enable="YES"
     local efibin = efibins[params.target]
 
     -- Create the ESP.
-    system("mkdir -p ./boot/efi/EFI/BOOT")
-    system("cp -f ./boot/loader.efi ./boot/efi/EFI/BOOT/" .. efibin)
-    local cmd = "makefs -t msdos -o fat_type=16 -o sectors_per_cluster=1 -o volume_label=EFISYS -s 4096k " ..
-                imagedir .. "/vm.efi ./boot/efi"
-    system(cmd)
+    mkdirp("boot/efi/EFI/BOOT")
+    system(("cp -f ./boot/loader.efi ./boot/efi/EFI/BOOT/%s"):format(efibin))
+    system(("makefs -t msdos -o fat_type=16 -o sectors_per_cluster=1" ..
+            " -o volume_label=EFISYS -s 4096k %s/vm.efi ./boot/efi")
+           :format(imagedir))
 
     -- Create the main filesystem image.
     if params.image_fs == "ufs" then
         -- XXX-MJ METALOG should be inputs.build.metalog
-        cmd = "makefs -Z -D -t ffs -o softupdates=1 -o version=2 "
+        local cmd = "makefs -Z -D -t ffs -o softupdates=1 -o version=2 "
         if params.image_size then
             cmd = cmd .. "-s " .. params.image_size .. " "
         end
@@ -217,7 +217,7 @@ sshd_enable="YES"
 
     -- Put them all together.  The main filesystem comes last in the partition
     -- table so that it can be expanded.
-    cmd = "mkimg -s gpt -f raw -S 512 "
+    local cmd = "mkimg -s gpt -f raw -S 512 "
     if params.target == "amd64/amd64" or params == "i386/i386" then
         cmd = cmd .. "-b ./boot/pmbr -p freebsd-boot/bootfs:=./boot/gptboot "
     end

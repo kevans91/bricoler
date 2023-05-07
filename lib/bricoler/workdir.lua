@@ -5,24 +5,6 @@ local Fs = require 'lfs'
 
 local Util = require 'lib.bricoler.util'
 
-local function mkdirp(dir)
-    local attr = Fs.attributes(dir)
-    if attr then
-        if attr.mode ~= "directory" then
-            return nil, "Path exists"
-        end
-        return true
-    end
-    local parent = Util.dirname(dir)
-    if parent ~= "." then
-        local res, err = mkdirp(parent)
-        if not res then
-            return res, err
-        end
-    end
-    return Fs.mkdir(dir)
-end
-
 local function clean()
     local cwd = Fs.currentdir()
     if not cwd:match("bricoler") then
@@ -32,18 +14,18 @@ local function clean()
 end
 
 local function init(dir, tasks)
-    local ok, err = mkdirp(dir)
+    local ok, err = Util.mkdirp(dir)
     if not ok then
         error("Failed to initialize workdir: " .. err)
     end
     for _, subdir in ipairs({"tasks", "runtask"}) do
-        ok, err = mkdirp(dir .. "/" .. subdir)
+        ok, err = Util.mkdirp(dir .. "/" .. subdir)
         if not ok then
             error("Failed to create '" .. subdir .. "' subdir: " .. err)
         end
     end
     for task, _ in pairs(tasks) do
-        ok, err = mkdirp(dir .. "/tasks/" .. task)
+        ok, err = Util.mkdirp(dir .. "/tasks/" .. task)
         if not ok then
             error("Failed to create task subdir '" .. task .. "': " .. err)
         end
@@ -60,7 +42,7 @@ local function push(dir)
     -- No absolute paths.
     assert(dir:sub(1, 1) ~= "/")
 
-    local ok, err = mkdirp(dir)
+    local ok, err = Util.mkdirp(dir)
     if not ok then
         error("Failed to create subdirectory '" .. dir .. "': " .. err)
     end

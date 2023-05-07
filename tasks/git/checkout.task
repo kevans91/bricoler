@@ -1,4 +1,4 @@
--- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+-- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
 Descr = [[
 Make a git repository available, either by cloning an existing repository,
@@ -21,7 +21,7 @@ Params = {
 
 Outputs = {
     checkout = {
-        descr = "A copy of the checked out repository.",
+        descr = "A copy of the checked out repository",
     }
 }
 
@@ -30,13 +30,11 @@ function Run(_, params, _, outputs)
     if params.clone then
         if attr and fs.attributes(outputs.checkout .. "/.git") then
             -- XXX-MJ need to handle the case where fast-forward isn't possible
-            local cmd = ("git -C %s pull"):format(outputs.checkout)
-            system(cmd)
+            system(("git -C %s pull"):format(outputs.checkout))
         else
             local branch = params.branch and "--branch=" .. params.branch or ""
-            local cmd = ("git clone --depth=1 %s %s %s")
-                        :format(branch, params.repo, outputs.checkout)
-            system(cmd)
+            system(("git clone --depth=1 %s %s %s")
+                   :format(branch, params.repo, outputs.checkout))
         end
     else
         -- The repo URI must be a filesystem path.

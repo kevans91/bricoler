@@ -1,4 +1,4 @@
--- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+-- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
 local Fs = require 'lfs'
 
@@ -218,10 +218,12 @@ function Task:run(ctx, inputs)
         f:close()
     end
     self.env.cd = function (dir)
+        local curr = Fs.currentdir()
         local ok, err = Fs.chdir(dir)
         if not ok then
             error("Failed to enter directory '" .. dir "': " .. err)
         end
+        return curr
     end
     self.env.realpath = function (path)
         local res, err = Util.realpath(path)
@@ -229,6 +231,12 @@ function Task:run(ctx, inputs)
             error("realpath('" .. path .. "') failed: " .. err)
         end
         return res
+    end
+    self.env.mkdirp = function (path)
+        local res, err = Util.mkdirp(path)
+        if not res then
+            error("mkdirp('" .. path .. "') failed: " .. err)
+        end
     end
     self.env.dirname, self.env.basename = Util.dirname, Util.basename
     self.env.fs = Fs
