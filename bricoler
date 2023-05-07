@@ -24,7 +24,9 @@ Util.fsvisit(taskdir, function (dir, file, attr)
     local name = path:match("^" .. taskdir .. "/+(.+)%.task$")
     if name then
         -- XXX-MJ make sure there's no invalid chars.
-        tasks[name] = Task{path = Util.realpath(path)}
+        tasks[name] = Task{
+            path = Util.realpath(path)
+        }
     else
         Util.warn("Ignored file '" .. path .. "' in task directory.")
     end
@@ -52,14 +54,27 @@ cmds.runtask:argument("task")
     :description("Task name")
     :default(default_task)
     :choices(taskchoices)
+cmds.runtask:argument("job")
+    :description("Job name")
+    :default("")
+    :args("?")
 
-cmds.newjob = parser:command("newjob")
+cmds.sql = parser:command("sql")
+    :description("Drop into the SQLite3 shell for the database")
+cmds.sql:option("--workdir")
+    :description("Work directory under which to run tasks, overrides ${BRICOLER_WORKDIR}")
+    :default(workdir)
 
 local args = parser:parse()
 
 Workdir.init(args.workdir)
+local dbpath = "./jobs.db"
 
 if args.runtask then
+    local db = JobDB{
+        path = dbpath,
+        tasks = tasks,
+    }
     if args.task == default_task then
         local list = Util.tablekeys(tasks)
         table.sort(list)
@@ -70,7 +85,12 @@ if args.runtask then
         end
         os.exit(0)
     end
-    local sched = TaskSched{universe = tasks, target = args.task}
+    local sched = TaskSched{
+        universe = tasks,
+        job = args.job,
+        target = args.task,
+        jobdb = db
+    }
     sched:bind(args.param)
     if args.show then
         sched:print()
@@ -82,6 +102,6 @@ if args.runtask then
         sched:run()
         Workdir.pop()
     end
-elseif args.newjob then
-    local db = JobDB{path = Util.realpath("./jobs.db")}
+elseif args.sql then
+    os.execute("sqlite3 " .. dbpath)
 end

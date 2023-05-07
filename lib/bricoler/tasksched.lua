@@ -14,6 +14,8 @@ local TaskSched = Class({
 }, {
     Class.property("universe", "table"),
     Class.property("target", "string"),
+    Class.property("job", "string"), -- Can be nil.
+    Class.property("jobdb"),
 })
 
 function TaskSched:_ctor()
@@ -98,14 +100,37 @@ function TaskSched:bind(params)
         end
     end)
 
-    -- Now go through user-provided parameters and bind those.
+    if self.job then
+        local userbindings = {}
+        for _, v in ipairs(params) do
+            local task, param, val = v:match("^([^=:]+):([^=]+)=(.*)$")
+            if not task then
+                task, param, val = self.target, v:match("^([^=:]+)=(.*)$")
+            end
+            if not userbindings[task] then
+                userbindings[task] = {}
+            end
+            userbindings[task][param] = val
+        end
+        self.jobdb:add(self.job, userbindings)
+    end
+
+    -- Then apply any bindings from the job definition, if one was provided.
+    -- XXX-MJ
+
+    -- Finally go through user-provided parameters and bind those.
     for _, v in ipairs(params) do
+        -- XXX-MJ don't want to use "userbindings" here since we want to
+        -- preserve the parameter order specified by the user.
+
+        -- XXX-MJ ":" and "=" cannot appear in task names.
         local task, param, val = v:match("^([^=:]+):([^=]+)=(.*)$")
         if not task then
             task, param, val = "", v:match("^([^=:]+)=(.*)$")
         end
 
         local sched = self.schedule
+        -- XXX-MJ "." cannot appear in task names.
         for child, _ in task:gmatch("([^%.]+)") do
             sched = sched[child]
             if not sched then
@@ -116,6 +141,8 @@ function TaskSched:bind(params)
         sched[1]:bind(param, val)
     end
 
+    -- Now handle lazy inter-task parameter bindings.
+    -- XXX-MJ what happens if the user overrode one of these?
     visitsched(self.schedule, function (task, sched)
         params = task:paramvals()
         for iname, input in pairs(task.inputs) do
