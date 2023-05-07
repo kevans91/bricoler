@@ -1,6 +1,4 @@
--- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
-
-local Posix = require 'posix'
+-- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
 local Class = require 'lib.bricoler.class'
 local Task = require 'lib.bricoler.task'
@@ -40,7 +38,7 @@ end
 
 -- Invoke a callback on all tasks in a schedule in postorder, i.e., children are
 -- visited before parents.
-local function visitsched(schedule, cb, order)
+function TaskSched:_visit(cb, order)
     if order == nil then
         order = "postorder"
     end
@@ -61,7 +59,7 @@ local function visitsched(schedule, cb, order)
             f(sched[1], sched, name)
         end
     end
-    _visitsched(schedule, cb, {})
+    _visitsched(self.schedule, cb, {})
 end
 
 -- Bind parameters for a task schedule.  "params" is an array of strings of the
@@ -88,7 +86,7 @@ function TaskSched:bind(params)
     -- First bind default and input values for scheduled task parameters.
     -- "Input values" are those set in an input definition, wherein a parent
     -- task specifies parameters for a direct dependency.
-    visitsched(self.schedule, function (task, sched)
+    self:_visit(function (task, sched)
         for name, param in pairs(task.params) do
             task:bind(name, param:defaultvalue())
         end
@@ -143,7 +141,7 @@ function TaskSched:bind(params)
 
     -- Now handle lazy inter-task parameter bindings.
     -- XXX-MJ what happens if the user overrode one of these?
-    visitsched(self.schedule, function (task, sched)
+    self:_visit(function (task, sched)
         params = task:paramvals()
         for iname, input in pairs(task.inputs) do
             for pname, param in pairs(input.params) do
@@ -158,14 +156,9 @@ function TaskSched:bind(params)
     end, "preorder")
 end
 
-function TaskSched:run()
-    local ctx = {
-        quiet = not Posix.unistd.isatty(Posix.unistd.STDOUT_FILENO),
-        maxjobs = Util.sysctl("hw.ncpu"),
-    }
-
+function TaskSched:run(ctx)
     -- Do we have any unbound required parameters?  Raise an error if so.
-    visitsched(self.schedule, function (task)
+    self:_visit(function (task)
         for k, v in pairs(task.params) do
             if v.required and not v:value() then
                 -- XXX-MJ error message needs to name the task too.
@@ -174,7 +167,7 @@ function TaskSched:run()
         end
     end)
 
-    visitsched(self.schedule, function (task, sched, name)
+    self:_visit(function (task, sched, name)
         local dir = table.concat(name, "/")
         if dir == "" then
             dir = "."
@@ -232,7 +225,7 @@ function TaskSched:print()
             print(prefix(level + 1) .. "O " .. name)
         end
 
-        -- XXX-MJ this should use visitsched, but needs preorder traversal.
+        -- XXX-MJ this should use _visit, but needs preorder traversal.
         for k, v in pairs(sched) do
             if type(k) == "string" then
                 dump(k, v, level + 1)

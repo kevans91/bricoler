@@ -1,4 +1,4 @@
--- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+-- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
 -- XXX-MJ this file should just use posix
 local Fs = require 'lfs'
@@ -31,15 +31,21 @@ local function clean()
     os.execute("rm -rf *")
 end
 
-local function init(dir)
+local function init(dir, tasks)
     local ok, err = mkdirp(dir)
     if not ok then
         error("Failed to initialize workdir: " .. err)
     end
-    for _, subdir in ipairs({"jobs", "runtask"}) do
+    for _, subdir in ipairs({"tasks", "runtask"}) do
         ok, err = mkdirp(dir .. "/" .. subdir)
         if not ok then
             error("Failed to create '" .. subdir .. "' subdir: " .. err)
+        end
+    end
+    for task, _ in pairs(tasks) do
+        ok, err = mkdirp(dir .. "/tasks/" .. task)
+        if not ok then
+            error("Failed to create task subdir '" .. task .. "': " .. err)
         end
     end
     ok, err = Fs.chdir(dir)
