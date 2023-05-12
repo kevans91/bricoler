@@ -191,6 +191,7 @@ function Task:outputtab()
 end
 
 function Task:run(ctx, inputs)
+    self.env.error = error
     self.env.print = print
     self.env.system = function (cmd)
         if not ctx.quiet then
