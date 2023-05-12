@@ -1,0 +1,43 @@
+-- Copyright (c) Mark Johnston <markj@FreeBSD.org>
+
+Params = {
+    obj = {
+        -- jhb's "build" script doesn't provide a way to specify the objdir
+        -- path, so we just assume it's "obj" and give the user a way to
+        -- manually override that if necessary.
+        descr = "Name of the objdir created by the \"build\" script",
+        default = "obj",
+    },
+}
+
+Inputs = {
+    build = {
+        task = "git/checkout",
+        params = {
+            repo = "https://github.com/bsdjhb/kdbg",
+        },
+    },
+    gdb = {
+        task = "git/checkout",
+        params = {
+            repo = "https://github.com/bsdjhb/gdb",
+            branch = "kgdb",
+        },
+    },
+}
+
+Outputs = {
+    objdir = {
+        descr = "gdb build outputs",
+    },
+}
+
+function Run(ctx, params, inputs, outputs)
+    local old = cd(inputs.gdb.checkout)
+    system(("%s/%s/gdb/build"):format(old, inputs.build.checkout))
+    cd(params.obj)
+    system(("gmake -j%d"):format(ctx.maxjobs))
+    outputs.objdir = realpath(".")
+end
+
+-- vi: ft=lua
