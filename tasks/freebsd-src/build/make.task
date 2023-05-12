@@ -1,4 +1,4 @@
--- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+-- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
 Descr = [[
 Make a FreeBSD src build target, such as buildworld.
@@ -108,13 +108,14 @@ function Run(ctx, params, inputs, outputs)
 
     mkdirp(outputs.stagedir)
 
+    if params.quiet then
+        params.make_args = params.make_args .. " -s"
+    end
+
     -- Build each target using a separate make invocation.  This might not be
     -- necessary but I think the top-level target ordering is underspecified
     -- so let's just play it safe.
     for target in params.make_targets:gmatch("([^%s]+)") do
-        if params.quiet then
-            params.make_args = params.make_args .. " -s"
-        end
         system(("%s make -C %s -j %d %s %s")
                :format(env,
                        inputs.src.checkout,
