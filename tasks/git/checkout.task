@@ -42,7 +42,8 @@ function Run(_, params, _, outputs)
         if not uri then
             uri = params.repo:match("^/")
             if not uri then
-                error("Cannot link non-local repository")
+                error(("Cannot link non-local repository '%s'")
+                      :format(params.repo))
             end
         end
 
