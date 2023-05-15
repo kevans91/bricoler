@@ -96,15 +96,11 @@ if args.runtask then
     if args.show then
         sched:print()
     else
-        Workdir.push("runtask")
-        if args.clean then
-            Workdir.clean()
-        end
         sched:run({
+            clean = args.clean,
             quiet = not Posix.unistd.isatty(Posix.unistd.STDOUT_FILENO),
             maxjobs = Util.sysctl("hw.ncpu"),
         })
-        Workdir.pop()
     end
 elseif args.sql then
     os.execute("sqlite3 " .. dbpath)

@@ -1,4 +1,4 @@
--- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+-- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
 -- Interface to the job database, implemented using SQLite3.  This is the only
 -- module that should contain SQL statements.
@@ -80,13 +80,14 @@ CREATE TABLE tasks (
 CREATE TABLE jobs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     next_id INTEGER, -- Initially zero.
+    task_id REFERENCES tasks(id) ON DELETE CASCADE,
     name TEXT NOT NULL UNIQUE
 );
 
 CREATE TABLE param_bindings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     job_id REFERENCES jobs(id) ON DELETE CASCADE,
-    task_id REFERENCES tasks(id) ON DELETE CASCADE,
+    param_task TEXT NOT NULL,
     param_name TEXT NOT NULL,
     param_value TEXT NOT NULL
 );
@@ -118,11 +119,14 @@ function JobDB:_errmsg()
     return self.sqlh:errmsg()
 end
 
-function JobDB:_jobid(jobname)
+function JobDB:_jobid(jobname, taskname)
     local job = nil
-    local err = self:_exec([[
-SELECT id FROM jobs WHERE jobs.name = ']] .. jobname .. [[';
-    ]], function (_, _, values, _)
+    local err = self:_exec(([[
+SELECT jobs.id FROM jobs
+  INNER JOIN tasks ON jobs.task_id = tasks.id
+  WHERE jobs.name = '%s' AND tasks.name = '%s';
+]]):format(jobname, taskname),
+    function (_, _, values, _)
         job = values[1]
         return 0
     end)
@@ -135,9 +139,9 @@ end
 -- Look up a task's ID.
 function JobDB:_taskid(taskname)
     local task = nil
-    local err = self:_exec([[
-SELECT id FROM tasks WHERE tasks.name = ']] .. taskname .. [[';
-    ]], function (_, _, values, _)
+    local err = self:_exec(("SELECT id FROM tasks WHERE tasks.name = '%s';")
+                           :format(taskname),
+    function (_, _, values, _)
         task = values[1]
         return 0
     end)
@@ -147,45 +151,33 @@ SELECT id FROM tasks WHERE tasks.name = ']] .. taskname .. [[';
     return task
 end
 
-function JobDB:add(jobname, bindings)
+function JobDB:add(jobname, taskname, bindings)
+    local taskid = self.tasks[taskname]
+    if not taskid then
+        error("Task '" .. taskname .. "' is not known")
+    end
     local err = self:_exec(([[
-INSERT INTO jobs (name) VALUES ('%s');
-    ]]):format(jobname))
+INSERT INTO jobs (name, task_id)
+  VALUES ('%s', '%d');
+]]):format(jobname, taskid))
     if not sqlok(err) then
         error("Failed to add job '" .. jobname .. "': " .. self:_errmsg())
     end
-    local jobid = self:_jobid(jobname)
+    local jobid = self:_jobid(jobname, taskname)
 
     for task, params in pairs(bindings) do
-        local taskid = self.tasks[task]
-        if not taskid then
-            error("Task '" .. task .. "' is not known.")
-        end
         for param, value in pairs(params) do
+            print(param, value)
             err = self:_exec(([[
-INSERT INTO param_bindings (job_id, task_id, param_name, param_value) VALUES (%d, %d, '%s', '%s');
-            ]]):format(jobid, taskid, param, value))
+INSERT INTO param_bindings (job_id, param_task, param_name, param_value)
+  VALUES (%d, '%s', '%s', '%s');
+]]):format(jobid, task, param, value))
         end
     end
 end
 
-function JobDB:lookup(jobname)
-    local tasks = {}
-    local err = self:_exec([[
-SELECT tasks.name, jobs.name FROM jobs INNER JOIN tasks ON jobs.task_id = tasks.id WHERE jobs.name = ']] .. jobname .. [[';
-    ]], function (udata, _, values, _)
-        for _, v in ipairs(values) do
-            udata[v] = true
-        end
-    end, tasks)
-    if not sqlok(err) then
-        error("Failed to lookup job '" .. jobname .. "': " .. self:_errmsg())
-    end
-
-    return Job{
-        name = jobname,
-        bindings = {},
-    }
+function JobDB:lookup(jobname, taskname)
+    return self:_jobid(jobname, taskname)
 end
 
 return JobDB

@@ -65,6 +65,8 @@ end
 -- Bind parameters for a task schedule.  "params" is an array of strings of the
 -- form [<name>:]<param>=<value>.  These values override default parameter
 -- values.
+--
+-- XXX-MJ this should be done as a part of the ctor
 function TaskSched:bind(params)
     -- XXX-MJ need some more formalism here.  What happens if the same parameter
     -- is overridden from multiple tasks?
@@ -99,18 +101,21 @@ function TaskSched:bind(params)
     end)
 
     if self.job then
-        local userbindings = {}
-        for _, v in ipairs(params) do
-            local task, param, val = v:match("^([^=:]+):([^=]+)=(.*)$")
-            if not task then
-                task, param, val = self.target, v:match("^([^=:]+)=(.*)$")
+        if not self.jobdb:lookup(self.job, self.schedule[2]) then
+            local userbindings = {}
+            for _, v in ipairs(params) do
+                local task, param, val = v:match("^([^=:]+):([^=]+)=(.*)$")
+                if not task then
+                    task, param, val = self.target, v:match("^([^=:]+)=(.*)$")
+                end
+
+                if not userbindings[task] then
+                    userbindings[task] = {}
+                end
+                userbindings[task][param] = val
             end
-            if not userbindings[task] then
-                userbindings[task] = {}
-            end
-            userbindings[task][param] = val
+            self.jobdb:add(self.job, self.schedule[2], userbindings)
         end
-        self.jobdb:add(self.job, userbindings)
     end
 
     -- Then apply any bindings from the job definition, if one was provided.
@@ -157,6 +162,16 @@ function TaskSched:bind(params)
 end
 
 function TaskSched:run(ctx)
+    if self.job then
+        Workdir.push("tasks/" .. self.schedule[2] .. "/" .. self.job)
+    else
+        Workdir.push("runtask")
+    end
+
+    if ctx.clean then
+        Workdir.clean()
+    end
+
     -- Do we have any unbound required parameters?  Raise an error if so.
     self:_visit(function (task)
         for k, v in pairs(task.params) do
@@ -193,6 +208,9 @@ function TaskSched:run(ctx)
         Workdir.pop()
         sched[3] = outputs
     end)
+
+    -- XXX-MJ want to do this as part of a "finally" clause.
+    Workdir.pop()
 end
 
 function TaskSched:print()
