@@ -1,4 +1,16 @@
--- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+-- Copyright (c) Mark Johnston <markj@FreeBSD.org>
+
+-- Hand-rolled classes.  Define one with something like this:
+--
+--   local Foo = Class({<prototype fields>}, {<property fields>})
+--
+-- Then create an instance with:
+--
+--   local foo = Foo{<properties>}
+--
+-- "foo" will be instantiated with a copy of the prototype and any
+-- caller-supplied properties.  Foo's _ctor function, if defined,
+-- is invoked after the properties are copied into the new object.
 
 local function class(proto, props)
     local function deepcopy(from, to)
