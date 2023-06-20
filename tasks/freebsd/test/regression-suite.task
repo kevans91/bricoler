@@ -3,7 +3,12 @@
 Params = {
     tests = {
         descr = "Tests to run, relative to /usr/tests",
-    }
+    },
+    pkgs = {
+        descr = "Packages to install",
+        -- XXX-MJ needs to be specified only once
+        default = "python py39-pytest py39-scapy perl5 jq ksh93 openvpn llvm gtar",
+    },
 }
 
 Inputs = {
@@ -17,7 +22,7 @@ Inputs = {
                 -- XXX-MJ need to provide some extra disks for the ZFS tests
                 -- XXX-MJ want to disable crond (and maybe other daemons)
                 image_size = "50g",
-                pkgs = "python py39-pytest py39-scapy perl5 jq ksh93 openvpn llvm gtar",
+                pkgs = "python py39-pytest py39-scapy perl5 jq ksh93 openvpn llvm gtar isc-dhcp44-server",
                 ssh_users = "root",
                 build = {
                     make_args = "WITHOUT_CLANG= WITHOUT_LLD= WITHOUT_LLDB= WITHOUT_LIB32= WITH_DTRACE_TESTS="
@@ -45,7 +50,18 @@ function Run(_, params, inputs)
     VM:boot()
     VM:expect("send -- \"sysctl kern.ipc.tls.enable=1\\n\"")
     VM:expect("send -- \"sysctl vfs.aio.enable_unsafe=1\\n\"")
-    VM:expect("send -- \"kldload ipsec pf pfsync if_ovpn\\n\"")
+    VM:expect("send -- \"kldload ipsec pf pfsync if_ovpn carp\\n\"")
+
+    -- ifconfig_DEFAULT breaks some networking tests, at least frag6.
+    -- Remove it here assuming that the guest has already DHCPed and won't
+    -- reboot.
+    VM:expect("send -- \"sysrc -x ifconfig_DEFAULT\\n\"")
+
+    -- Some ATF tests want a toolchain, link the executables installed by llvm.
+    VM:expect("send -- \"ln -s /usr/local/bin/clang /usr/local/bin/cc\\n\"")
+    VM:expect("send -- \"ln -s /usr/local/bin/clang++ /usr/local/bin/c++\\n\"")
+    VM:expect("send -- \"ln -s /usr/local/bin/clang-cpp /usr/local/bin/cpp\\n\"")
+
     VM:expect("send -- \"" .. kyua .. "\\n\"")
     VM:expect("expect eof")
 
