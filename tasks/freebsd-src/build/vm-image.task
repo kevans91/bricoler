@@ -30,7 +30,12 @@ Params = {
     pkgs = {
         -- XXX-MJ want some way to specify the source
         descr = "List of packages to install upon first boot",
-    }
+    },
+    pkgabi = {
+        -- XXX-MJ should be derived from src tree and target
+        descr = "pkg(8) ABI",
+        default = "FreeBSD:14:amd64",
+    },
 }
 
 Inputs = {
@@ -96,24 +101,23 @@ function Run(_, params, inputs, outputs)
         -- Create a local pkg repository by fetching packages from some
         -- source (currently hard-coded to pkg.f.o).
         mkdirp("tmp/pkg")
-        -- XXX-MJ ABI is hard-coded
-        writefile("./tmp/pkg/FreeBSD.conf", [[
+        writefile("./tmp/pkg/FreeBSD.conf", ([[
 FreeBSD: {
-    url: "pkg+http://pkg.FreeBSD.org/FreeBSD:14:amd64/latest",
+    url: "pkg+http://pkg.FreeBSD.org/%s/latest",
     mirror_type: "srv",
     signature_type: "fingerprints",
     fingerprints: "/usr/share/keys/pkg",
     enabled: yes
 }
-]])
+]]):format(params.pkgabi))
 
-        -- XXX-MJ ABI is hard-coded
-        local pkgprefix = "INSTALL_AS_USER=1 pkg " ..
-                          "-o ASSUME_ALWAYS_YES=true " ..
-                          "-o PKG_CACHEDIR=./var/cache/pkg " ..
-                          "-o REPOS_DIR=./tmp/pkg " ..
-                          "-o PKG_DBDIR=./var/db/pkg " ..
-                          "-o ABI=FreeBSD:14:amd64 "
+        local pkgprefix = ("INSTALL_AS_USER=1 pkg " ..
+                           "-o ASSUME_ALWAYS_YES=true " ..
+                           "-o PKG_CACHEDIR=./var/cache/pkg " ..
+                           "-o REPOS_DIR=./tmp/pkg " ..
+                           "-o PKG_DBDIR=./var/db/pkg " ..
+                           "-o ABI=%s ")
+                          :format(params.pkgabi)
         system(pkgprefix .. "update")
         system(pkgprefix .. "fetch --dependencies -o ./root/bootstrap pkg")
         system(pkgprefix .. "fetch --dependencies -o ./root/pkg " .. params.pkgs)
