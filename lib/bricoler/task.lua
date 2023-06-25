@@ -112,6 +112,7 @@ function Task:_ctor(args)
         f:close()
         return val
     end
+    self.env.sysctl = Util.sysctl
 
     assert(loadfile(args.path, "t", self.env))()
 
