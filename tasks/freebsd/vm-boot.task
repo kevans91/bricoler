@@ -27,7 +27,7 @@ Params = {
         -- XXX-MJ ideally we'd infer this from the input image somehow
         descr = "FreeBSD build target",
         default = uname_m() .. "/" .. uname_p(),
-        valid = {"amd64", "amd64/amd64", "arm64", "arm64/aarch64", "i386", "i386/i386", "riscv/riscv64"},
+        valid = {"amd64/amd64", "arm/armv7", "arm64/aarch64", "i386/i386", "riscv/riscv64"},
     }
 }
 
@@ -58,6 +58,7 @@ function Run(_, params, inputs, outputs)
 
     local qemubins = {
         ["amd64/amd64"] = "qemu-system-x86_64",
+        ["arm/armv7"] = "qemu-system-arm",
         ["arm64/aarch64"] = "qemu-system-aarch64",
         ["i386/i386"] = "qemu-system-i386",
         ["riscv/riscv64"] = "qemu-system-riscv64",
@@ -75,6 +76,8 @@ function Run(_, params, inputs, outputs)
                  "-gdb tcp::1234"
     if params.target == "arm64/aarch64" then
         qemu = qemu .. " -M virt -cpu cortex-a57 -bios /usr/local/share/qemu/edk2-aarch64-code.fd"
+    elseif params.target == "arm/armv7" then
+        qemu = qemu .. " -M virt -cpu max -bios /usr/local/share/qemu/edk2-arm-code.fd"
     elseif params.target == "riscv/riscv64" then
         qemu = qemu .. " -M virt -bios /usr/local/share/opensbi/lp64/generic/firmware/fw_jump.elf" ..
                " -kernel /usr/local/share/u-boot/u-boot-qemu-riscv64/u-boot.bin" ..
