@@ -40,7 +40,7 @@ function Run(_, params, _, outputs)
         -- The repo URI must be a filesystem path.
         local uri = params.repo:match("^file://(/.*)$")
         if not uri then
-            uri = params.repo:match("^/")
+            uri = params.repo:match("^/.*")
             if not uri then
                 error(("Cannot link non-local repository '%s'")
                       :format(params.repo))
@@ -50,7 +50,7 @@ function Run(_, params, _, outputs)
         -- XXX-MJ check whether this is actually a git repo.
         -- XXX-MJ can't use system() at the moment since it raises an error
 
-        system(("ln -s %s %s"):format(uri, outputs.checkout))
+        system(("ln -f -s %s %s"):format(uri, outputs.checkout))
     end
 end
 

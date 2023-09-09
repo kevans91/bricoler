@@ -17,6 +17,10 @@ Params = {
         descr = "Command-line flags to pass to bmake(1)",
         default = "",
     },
+
+    -- The parameters below can all be specified using make_args and so are
+    -- somewhat redundant, but fine-grained parameters are more descriptive and
+    -- having them makes it easier to override specific options.
     clean = {
         descr = "Force a clean build of the target",
         default = false,
@@ -27,6 +31,9 @@ Params = {
     },
     kernconf = {
         descr = "Kernel configuration to use for {build,install}kernel targets"
+    },
+    kernconfdir = {
+        descr = "Directory containing the kernel configuration file",
     },
     quiet = {
         descr = "Run bmake(1) with -s",

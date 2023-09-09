@@ -4,27 +4,42 @@ Params = {
     dataset = {
         descr = "ZFS dataset to use for VM image cloning",
         required = true,
+        valid = function (val)
+            return zfs_property("mountpoint", val) ~= nil
+        end
     },
     numvms = {
         descr = "Number of VMs to run",
+    },
+    http_port = {
+        descr = "HTTP port for syz-manager",
+        default = 8081,
     },
 }
 
 Inputs = {
     vm_image = {
         task = "freebsd-src/build/vm-image",
+        params = {
+            ssh_users = "root",
+            build = {
+                kernconf = "SYZKALLER",
+                -- kernconfdir = ???
+            },
+        },
     },
     syzkaller = {
         task = "syzkaller/build"
     },
 }
 
-function Run()
-    mkdir("./workdir")
-    writefile("./syz-manager.conf", [[
+function Run(_, params)
+    local workdir = zfs_property("mountpoint", params.dataset)
+
+    writefile("./syz-manager.conf", ([[
 {
     "target": "freebsd/amd64",
-    "http": 0.0.0.0:8081,
+    "http": 0.0.0.0:%s,
     "workdir": "./workdir",
     "image": <path to VM image file>
     "syzkaller": <path to syzkaller checkout>
@@ -40,10 +55,10 @@ function Run()
         "cpu": 2,
         "mem": "2G",
         "hostip": <bridge address>,
-        "dataset": <ZFS dataset name>,
+        "dataset": %s,
     }
 }
-]])
+]]):format(params.http_port, params.dataset))
 end
 
 -- vi: ft=lua

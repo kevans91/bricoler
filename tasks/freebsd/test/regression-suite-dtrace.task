@@ -1,0 +1,18 @@
+-- Copyright (c) Mark Johnston <markj@FreeBSD.org>
+
+Inputs = {
+    test = {
+        task = "freebsd/test/regression-suite",
+        params = {
+            tests = "cddl/usr.sbin/dtrace",
+            pkgs = "pdksh",
+        },
+    },
+}
+
+-- XXX-MJ push WITH_DTRACE_TESTS into build flags
+
+function Run()
+end
+
+-- vi:ft=lua

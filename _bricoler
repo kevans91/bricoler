@@ -28,7 +28,8 @@ Util.fsvisit(taskdir, function (dir, file, attr)
             path = Util.realpath(path)
         }
     else
-        Util.warn("Ignored file '" .. path .. "' in task directory.")
+        -- XXX-MJ disable for now since it can trigger test failures
+        --Util.warn("Ignored file '" .. path .. "' in task directory")
     end
 end)
 

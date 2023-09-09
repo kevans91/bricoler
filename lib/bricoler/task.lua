@@ -112,6 +112,17 @@ function Task:_ctor(args)
         f:close()
         return val
     end
+    self.env.zfs_property = function (prop, dataset)
+        local f, err = io.popen(("zfs get -H -o value %s %s")
+                                :format(prop, dataset))
+        if not f then
+            error(("failed to find property '%s' for '%s': %s")
+                  :format(prop, dataset, err))
+        end
+        local val = f:read()
+        f:close()
+        return val
+    end
     self.env.sysctl = Util.sysctl
 
     assert(loadfile(args.path, "t", self.env))()

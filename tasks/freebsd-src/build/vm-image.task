@@ -185,6 +185,7 @@ autoboot_delay=2
     mtree:add("./etc/rc.conf", {type = "file"}, [[
 hostname="freebsd-vm"
 ifconfig_DEFAULT="DHCP"
+defaultroute_delay="2"
 
 growfs_enable="YES"
 sshd_enable="YES"

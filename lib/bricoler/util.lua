@@ -91,7 +91,7 @@ local function err(code, msg)
 end
 
 local function warn(msg)
-    io.stderr:write(msg)
+    io.stderr:write(msg .. "\n")
 end
 
 return {
