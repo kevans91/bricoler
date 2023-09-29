@@ -3,6 +3,20 @@
 local Fs = require 'lfs'
 local Posix = require 'posix'
 
+local function ansicolor(str, color)
+    local ctab = {
+        green = "32m",
+        red = "31m",
+    }
+
+    local esc = ctab[color]
+    if not esc then
+        error("ansicolor: unknown color '" .. color .. "'")
+    end
+
+    return "\x1b[" .. esc .. str .. "\x1b[0m"
+end
+
 local function basename(path)
     return Posix.libgen.basename(path)
 end
@@ -60,6 +74,7 @@ local function fsvisit(dir, cb)
 end
 
 local function sysctl(name)
+    -- XXX-MJ allows arbitrary command execution
     local f, err = io.popen("sysctl -n " .. name)
     if not f then
         error("Failed to popen('sysctl -n " .. name .. "'): " .. err)
@@ -95,6 +110,7 @@ local function warn(msg)
 end
 
 return {
+    ansicolor = ansicolor,
     basename = basename,
     dirname = dirname,
     mkdirp = mkdirp,

@@ -207,17 +207,22 @@ function Task:run(ctx, inputs)
     self.env.print = print
     self.env.system = function (cmd)
         if not ctx.quiet then
-            print("Running command '\x1b[32m" .. cmd .. "\x1b[0m'")
+            print(("Running command '%s'"):format(Util.ansicolor(cmd, "green")))
         end
         local res, how, status = os.execute(cmd)
         if res then
             return
         end
+
+        local errmsg
         if how == "exit" then
-            error("Command '\x1b[31m" .. cmd .. "\x1b[0m' exited with status " .. status .. ".")
+            errmsg = ("Command '%s' exited with status %d")
+                     :format(Util.ansicolor(cmd, "red"), status)
         else
-            error("Command '\x1b[31m" .. cmd .. "\x1b[0m' terminated by signal " .. status .. ".")
+            errmsg = ("Command '%s' terminated by signal %d")
+                     :format(Util.ansicolor(cmd, "red"), status)
         end
+        error(errmsg)
     end
     self.env.writefile = function (file, str)
         local f, err = io.open(file, "w")
