@@ -1,6 +1,7 @@
 -- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
 local Fs = require 'lfs'
+local Posix = require 'posix'
 
 local Class = require 'lib.bricoler.class'
 local MTree = require 'lib.bricoler.mtree'
@@ -95,13 +96,8 @@ function Task:_ctor(args)
 
     -- XXX-MJ should we just initialize all of the env here, or...
     self.env.uname_m = function ()
-        local f, err = io.popen("uname -m")
-        if not f then
-            error("Failed to popen('uname -m'): " .. err)
-        end
-        local val = f:read()
-        f:close()
-        return val
+        local utsname = Posix.sys.utsname.uname()
+        return utsname.machine
     end
     self.env.uname_p = function ()
         local f, err = io.popen("uname -p")
