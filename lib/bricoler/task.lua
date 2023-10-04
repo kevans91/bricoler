@@ -109,6 +109,7 @@ function Task:_ctor(args)
         return val
     end
     self.env.zfs_property = function (prop, dataset)
+        -- XXX-MJ need some escaping
         local f, err = io.popen(("zfs get -H -o value %s %s")
                                 :format(prop, dataset))
         if not f then
@@ -219,6 +220,37 @@ function Task:run(ctx, inputs)
                      :format(Util.ansicolor(cmd, "red"), status)
         end
         error(errmsg)
+    end
+    self.env.execp = function (cmd)
+        if not ctx.quiet then
+            -- Would be nice to print more context: env and cwd.
+            print(("Running command '%s'")
+                  :format(Util.ansicolor(table.concat(cmd, " "), "green")))
+        end
+        local child, err = Posix.unistd.fork()
+        if child == nil then
+            error("Failed to fork: " .. err)
+        elseif child == 0 then
+            local prog = cmd[1]
+            table.remove(cmd, 1)
+            _, err = Posix.unistd.execp(prog, cmd)
+            Util.err(42, "Failed to exec '" .. prog .. "': " .. err)
+        else
+            local _, how, status = Posix.sys.wait.wait(child)
+            if how == "exited" and status == 0 then
+                return
+            end
+
+            local errmsg
+            if how == "exited" then
+                errmsg = ("Command '%s' exited with status %d")
+                         :format(Util.ansicolor(cmd[1], "red"), status)
+            else
+                errmsg = ("Command '%s' terminated by signal %d")
+                         :format(Util.ansicolor(cmd[1], "red"), status)
+            end
+            error(errmsg)
+        end
     end
     self.env.writefile = function (file, str)
         local f, err = io.open(file, "w")
