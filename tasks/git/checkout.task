@@ -1,22 +1,29 @@
 -- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
 Descr = [[
-Make a git repository available, either by cloning an existing repository,
-or updating an existing clone.
+Make a git repository available by one of several methods:
+- clone a remote repository,
+- update an existing clone,
+- create a symlink to a path
+In the last case we simply assume that the path is a git repository.
 ]]
 
 Params = {
     repo = {
-        descr = "URL for the git repository to check out",
+        descr = "URL for the git repository to check out, ignored after initial clone",
         required = true,
     },
     branch = {
-        descr = "git branch to check out"
+        descr = "git branch to check out, ignored after initial clone"
     },
     clone = {
-        descr = "Whether to clone the repository or make a symlink",
+        descr = "Whether to clone the repository or make a symlink to an existing repository",
         default = true
-    }
+    },
+    remote = {
+        descr = "Name to use for remote repository",
+        default = "origin",
+    },
 }
 
 Outputs = {
@@ -26,31 +33,34 @@ Outputs = {
 }
 
 function Run(_, params, _, outputs)
-    local attr = fs.attributes(outputs.checkout)
+    local checkout = outputs.checkout
+    local repo = params.repo
+    local remote = params.remote
+
     if params.clone then
-        if attr and fs.attributes(outputs.checkout .. "/.git") then
-            -- XXX-MJ need to handle the case where fast-forward isn't possible
-            system(("git -C %s pull"):format(outputs.checkout))
+        local attr = fs.attributes(checkout)
+        if attr and fs.attributes(checkout .. "/.git") then
+            execp{"git", "-C", checkout, "pull", "--rebase", remote}
+        elseif params.branch then
+            execp{"git", "clone", "--depth=1", "--origin", remote,
+                  "--branch", params.branch, repo, checkout}
         else
-            local branch = params.branch and "--branch=" .. params.branch or ""
-            system(("git clone --depth=1 %s %s %s")
-                   :format(branch, params.repo, outputs.checkout))
+            execp{"git", "clone", "--depth=1", "-o", remote, repo, checkout}
         end
     else
         -- The repo URI must be a filesystem path.
-        local uri = params.repo:match("^file://(/.*)$")
+        local uri = repo:match("^file://(/.*)$")
         if not uri then
-            uri = params.repo:match("^/.*")
+            uri = repo:match("^/.*")
             if not uri then
-                error(("Cannot link non-local repository '%s'")
-                      :format(params.repo))
+                error(("Cannot link non-local repository '%s'"):format(repo))
             end
         end
 
-        -- XXX-MJ check whether this is actually a git repo.
-        -- XXX-MJ can't use system() at the moment since it raises an error
-
-        system(("ln -f -s %s %s"):format(uri, outputs.checkout))
+        -- We should in principle check that this path corresponds to a git
+        -- repository, but we want to be flexible in the case where the user
+        -- wants to use a subtree instead.
+        execp{"ln", "-f", "-s", uri, checkout}
     end
 end
 
