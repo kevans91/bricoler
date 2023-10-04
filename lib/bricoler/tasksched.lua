@@ -1,5 +1,7 @@
 -- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
+local PL = require 'pl.import_into'()
+
 local Class = require 'lib.bricoler.class'
 local Task = require 'lib.bricoler.task'
 local Util = require 'lib.bricoler.util'
@@ -228,18 +230,23 @@ function TaskSched:print()
             print(prefix(level) .. taskname)
         end
 
-        local params = Util.tablekeys_s(task.params)
-        for _, name in ipairs(params) do
+        for _, name in PL.tablex.sortv(PL.tablex.keys(task.params)) do
             local param = task.params[name]
             local val = param:value()
             if val == nil then
-                val = param.required and "???" or ""
+                -- It would be nice to use other colours to denote how the
+                -- parameter was derived (e.g., user-provided, default, etc.).
+                if param.required then
+                    val = "???"
+                    name = Util.ansicolor(name, "red")
+                else
+                    val = ""
+                end
             end
             print(prefix(level + 1) .. "P " .. name .. "=" .. tostring(val))
         end
 
-        local outputs = Util.tablekeys_s(task.outputs)
-        for _, name in ipairs(outputs) do
+        for _, name in PL.tablex.sortv(PL.tablex.keys(task.outputs)) do
             print(prefix(level + 1) .. "O " .. name)
         end
 

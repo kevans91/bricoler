@@ -3,6 +3,7 @@
 
 local Argparse = require 'argparse'
 local Posix = require 'posix'
+local PL = require 'pl.import_into'()
 
 local JobDB = require 'lib.bricoler.jobdb'
 local Task = require 'lib.bricoler.task'
@@ -85,7 +86,7 @@ if args.runtask then
         tasks = tasks,
     }
     if not args.task then
-        local list = Util.tablekeys(tasks)
+        local list = PL.tablex.keys(tasks)
         table.sort(list)
         for _, v in ipairs(list) do
             if not v:match("^example/") then
