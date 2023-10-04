@@ -10,35 +10,38 @@ local TaskSched = require 'lib.bricoler.tasksched'
 local Workdir = require 'lib.bricoler.workdir'
 local Util = require 'lib.bricoler.util'
 
+local function enumtasks(basepath)
+    local tasks = {}
+    Util.fsvisit(basepath, function (dir, file, attr)
+        if not attr or attr.mode ~= "file" then
+            -- "attr" can be nil if the file is a dangling symlink.
+            return
+        end
+
+        local path = dir .. "/" .. file
+        local name = path:match("^" .. basepath .. "/+(.+)%.task$")
+        if name then
+            assert(not tasks[name], "Duplicate task name '" .. name .. "'")
+            tasks[name] = Task{
+                path = Util.realpath(path)
+            }
+        else
+            -- XXX-MJ simplistic, really we want to ignore certain files
+            --Util.warn("Ignored file '" .. path .. "' in task directory")
+        end
+    end)
+    return tasks
+end
+
 -- Find a path for this script and load task definitions from the relative dir.
 local scriptdir = Util.dirname(arg[0])
-local taskdir = scriptdir .. "/tasks"
-local tasks = {}
-local default_task = "list-tasks"
-Util.fsvisit(taskdir, function (dir, file, attr)
-    if attr.mode ~= "file" then
-        return
-    end
 
-    local path = dir .. "/" .. file
-    local name = path:match("^" .. taskdir .. "/+(.+)%.task$")
-    if name then
-        -- XXX-MJ make sure there's no invalid chars.
-        tasks[name] = Task{
-            path = Util.realpath(path)
-        }
-    else
-        -- XXX-MJ disable for now since it can trigger test failures
-        --Util.warn("Ignored file '" .. path .. "' in task directory")
-    end
-end)
+local workdir = os.getenv("BRICOLER_WORKDIR") or (os.getenv("HOME") .. "/bricoler")
+local taskdir = os.getenv("BRICOLER_TASKDIR") or Util.realpath(scriptdir .. "/tasks")
+local tasks = enumtasks(taskdir)
 
 local cmds = {}
 local parser = Argparse("bricoler", "Manage and run tasks.")
-
-local workdir = os.getenv("BRICOLER_WORKDIR") or (os.getenv("HOME") .. "/bricoler")
-local taskchoices = Util.tablekeys_s(tasks)
-
 cmds.runtask = parser:command("runtask")
     :description("Run the specified task, or list available tasks")
 cmds.runtask:flag("-s --show"):description("Print the computed task schedule")
@@ -50,11 +53,16 @@ cmds.runtask:flag("-c --clean")
 cmds.runtask:option("--workdir")
     :description("Work directory under which to run tasks, overrides ${BRICOLER_WORKDIR}")
     :default(workdir)
-table.insert(taskchoices, default_task)
+cmds.runtask:option("--taskdir")
+    :description("Directory tree containing task definitions")
+    :default(taskdir)
+    :action(function(_, _, val)
+        taskdir = Util.realpath(val)
+        tasks = enumtasks(taskdir)
+    end)
 cmds.runtask:argument("task")
+    :args("?") -- No name means, "print the list of available tasks."
     :description("Task name")
-    :default(default_task)
-    :choices(taskchoices)
 cmds.runtask:argument("job")
     :description("Job name")
     :default("")
@@ -76,7 +84,7 @@ if args.runtask then
         path = dbpath,
         tasks = tasks,
     }
-    if args.task == default_task then
+    if not args.task then
         local list = Util.tablekeys(tasks)
         table.sort(list)
         for _, v in ipairs(list) do

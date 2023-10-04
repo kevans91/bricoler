@@ -66,7 +66,8 @@ local function fsvisit(dir, cb)
             local path = dir .. "/" .. file
             attr = Fs.attributes(path)
             cb(dir, file, attr)
-            if attr.mode == "directory" then
+            if attr and attr.mode == "directory" then
+                -- "attr" can be nil if the file is a dangling symlink.
                 fsvisit(path, cb)
             end
         end
