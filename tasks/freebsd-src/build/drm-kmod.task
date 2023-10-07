@@ -8,6 +8,10 @@ Params = {
     -- XXX-MJ want a way to specify target arch
     -- XXX-MJ want a way to specify build opts? e.g., KASAN
     -- XXX-MJ want a way to specify individual drivers?
+    quiet = {
+        descr = "Run bmake(1) with -s",
+        default = true,
+    },
 }
 
 Inputs = {
@@ -19,11 +23,25 @@ Inputs = {
     },
 }
 
-function Run(ctx, _, inputs)
-    system(("make -j %d -C %s SYSDIR=%s")
-           :format(ctx.maxjobs,
-                   inputs.drm_src.checkout,
-                   realpath(inputs.freebsd_src.checkout) .. "/sys"))
+Outputs = {
+    objdir = {
+        descr = "A directory containing the unstaged output of the build"
+    },
+}
+
+function Run(ctx, params, inputs, outputs)
+    mkdirp(outputs.objdir)
+    local makecmd = {
+        "make",
+        "-j", ctx.maxjobs,
+        "-C", inputs.drm_src.checkout,
+        "SYSDIR=" .. realpath(inputs.freebsd_src.checkout) .. "/sys",
+        "MAKEOBJDIR=" .. realpath(outputs.objdir),
+    }
+    if params.quiet then
+        table.insert(makecmd, "-s")
+    end
+    execp(makecmd)
 end
 
 -- vi: ft=lua
