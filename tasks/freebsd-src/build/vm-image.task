@@ -1,7 +1,7 @@
 -- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
 Descr = [[
-Create a FreeBSD VM image.
+Create a FreeBSD VM image from a FreeBSD src tree.
 ]]
 
 Params = {
@@ -34,7 +34,7 @@ Params = {
     pkgabi = {
         -- XXX-MJ should be derived from src tree and target
         descr = "pkg(8) ABI",
-        default = "FreeBSD:14:amd64",
+        default = "FreeBSD:15:amd64",
     },
 }
 
