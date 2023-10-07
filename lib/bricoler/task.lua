@@ -5,6 +5,7 @@ local Posix = require 'posix'
 
 local Class = require 'lib.bricoler.class'
 local MTree = require 'lib.bricoler.tasklib.mtree'
+local Sys = require 'lib.freebsd.sys'
 local Util = require 'lib.bricoler.util'
 local VM = require 'lib.bricoler.tasklib.vm'
 
@@ -100,13 +101,7 @@ function Task:_ctor(args)
         return utsname.machine
     end
     self.env.uname_p = function ()
-        local f, err = io.popen("uname -p")
-        if not f then
-            error("failed to popen('uname -p'): " .. err)
-        end
-        local val = f:read()
-        f:close()
-        return val
+        return os.getenv("UNAME_p") or Sys.sysctl.sysctlbyname("hw.machine_arch")
     end
     self.env.zfs_property = function (prop, dataset)
         -- XXX-MJ need some escaping
