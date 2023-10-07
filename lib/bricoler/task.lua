@@ -135,6 +135,7 @@ function Task:_ctor(args)
         {self.env.Params,  self.params,  TaskParam},
     } do
         for k, v in pairs(p[1] or {}) do
+            assert(not k:match("[%.:=]"), "Invalid character in name '" .. k .. "'")
             p[2][k] = p[3](v)
         end
     end
@@ -289,6 +290,7 @@ function Task:run(ctx, inputs)
     self.env.pairs, self.env.ipairs, self.env.type = pairs, ipairs, type
     self.env.MTree = MTree
     self.env.VM = VM
+    self.env.table = table
 
     -- Let actions access parameters directly instead of going through the
     -- "val" field.

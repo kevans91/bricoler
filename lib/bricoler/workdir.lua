@@ -5,10 +5,15 @@ local Fs = require 'lfs'
 
 local Util = require 'lib.bricoler.util'
 
+local dirstack = {}
+
 local function clean()
     local cwd = Fs.currentdir()
     if not cwd:match("bricoler") then
         error("Cowardly refusing to run 'rm -rf *' in " .. cwd)
+    end
+    if #dirstack == 0 then
+        error("Cannot clean without having entered a workdir")
     end
     os.execute("rm -rf *")
 end
@@ -35,8 +40,6 @@ local function init(dir, tasks)
         error("Failed to enter workdir: " .. err)
     end
 end
-
-local dirstack = {}
 
 local function push(dir)
     -- No absolute paths.

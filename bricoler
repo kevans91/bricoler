@@ -49,7 +49,10 @@ cmds.runtask:flag("-s --show"):description("Print the computed task schedule")
 cmds.runtask:option("-p --param")
     :description("Specify a parameter for one or more tasks, [task:]<param>=<value>")
     :count("*")
-cmds.runtask:flag("-c --clean")
+cmds.runtask:option("-c --clean")
+    :description("Clean the output directory for task <task>")
+    :count("*")
+cmds.runtask:flag("-C --clean-all")
     :description("Clean the work directory before running any tasks")
 cmds.runtask:option("--workdir")
     :description("Work directory under which to run tasks, overrides ${BRICOLER_WORKDIR}")
@@ -89,24 +92,26 @@ if args.runtask then
         local list = PL.tablex.keys(tasks)
         table.sort(list)
         for _, v in ipairs(list) do
-            if not v:match("^example/") then
-                print(v)
-            end
+            print(v)
         end
         os.exit(0)
     end
     local sched = TaskSched{
-        universe = tasks,
         job = args.job,
+        jobdb = db,
+        universe = tasks,
         target = args.task,
-        jobdb = db
     }
     sched:bind(args.param)
     if args.show then
         sched:print()
     else
+        local clean = args.clean_all and {} or #args.clean > 0 and args.clean or nil
+        if clean then
+            clean = PL.tablex.makeset(clean)
+        end
         sched:run({
-            clean = args.clean,
+            clean = clean,
             quiet = not Posix.unistd.isatty(Posix.unistd.STDOUT_FILENO),
             maxjobs = Util.sysctl("hw.ncpu"),
         })
