@@ -37,6 +37,7 @@ function Run(ctx, params, inputs, outputs)
         "-C", inputs.drm_src.checkout,
         "SYSDIR=" .. realpath(inputs.freebsd_src.checkout) .. "/sys",
         "MAKEOBJDIR=" .. realpath(outputs.objdir),
+        "DEBUG_FLAGS=-g",
     }
     if params.quiet then
         table.insert(makecmd, "-s")
