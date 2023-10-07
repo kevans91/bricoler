@@ -1,7 +1,5 @@
 -- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
--- XXX-MJ this file belongs in "tasklib"
-
 local Class = require 'lib.bricoler.class'
 
 local VM = Class({

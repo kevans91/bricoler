@@ -4,9 +4,9 @@ local Fs = require 'lfs'
 local Posix = require 'posix'
 
 local Class = require 'lib.bricoler.class'
-local MTree = require 'lib.bricoler.mtree'
+local MTree = require 'lib.bricoler.tasklib.mtree'
 local Util = require 'lib.bricoler.util'
-local VM = require 'lib.bricoler.vm'
+local VM = require 'lib.bricoler.tasklib.vm'
 
 local TaskInput = Class({
     descr = "",                 -- Human readable description for help messages.

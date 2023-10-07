@@ -1,4 +1,4 @@
--- Copyright (c) 2023 Mark Johnston <markj@FreeBSD.org>
+-- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
 local Class = require 'lib.bricoler.class'
 
