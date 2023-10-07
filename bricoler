@@ -99,10 +99,10 @@ if args.runtask then
     local sched = TaskSched{
         job = args.job,
         jobdb = db,
+        params = args.param,
         universe = tasks,
         target = args.task,
     }
-    sched:bind(args.param)
     if args.show then
         sched:print()
     else

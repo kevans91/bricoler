@@ -20,6 +20,7 @@ local TaskSched = Class({
     target = "",                -- Name of the target task to run.
     universe = {},              -- Set of all known tasks, keyed by task name.
 }, {
+    Class.property("params", "table"),
     Class.property("universe", "table"),
     Class.property("target", "string"),
     Class.property("job", "string"), -- Can be nil.
@@ -31,6 +32,7 @@ function TaskSched:_ctor()
         error("Unknown task '" .. self.target .. "'.")
     end
     self.schedule = self:_mksched(self.target)
+    self:_bind(self.params)
     return self
 end
 
@@ -91,9 +93,7 @@ end
 -- Bind parameters for a task schedule.  "params" is an array of strings of the
 -- form [<name>:]<param>=<value>.  These values override default parameter
 -- values.
---
--- XXX-MJ this should be done as a part of the ctor
-function TaskSched:bind(params)
+function TaskSched:_bind(params)
     -- Normalize user-specified parameters.
     local normal = {}
     for _, v in ipairs(params) do
@@ -113,11 +113,11 @@ function TaskSched:bind(params)
         if type(val) == "function" then
             return
         elseif type(val) == "table" then
-            if not sched[name] then
+            if not sched.inputs[name] then
                 error("Unmatched task input '" .. name .. "'")
             end
             for pname, pval in pairs(val) do
-                bindval(sched[name], pname, pval)
+                bindval(sched.inputs[name], pname, pval)
             end
         else
             sched.task:bind(name, val)
