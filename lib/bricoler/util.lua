@@ -1,6 +1,7 @@
 -- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
 local Fs = require 'lfs'
+local PL = require 'pl.import_into'()
 local Posix = require 'posix'
 
 local Sys = require 'lib.freebsd.sys'
@@ -30,21 +31,7 @@ end
 -- Create the named directory and intermediate directories as required.
 -- No error is raised if the directory already exists.
 local function mkdirp(dir)
-    local attr = Fs.attributes(dir)
-    if attr then
-        if attr.mode ~= "directory" then
-            return nil, "Path exists"
-        end
-        return true
-    end
-    local parent = dirname(dir)
-    if parent ~= "." then
-        local res, err = mkdirp(parent)
-        if not res then
-            return res, err
-        end
-    end
-    return Fs.mkdir(dir)
+    return PL.dir.makepath(dir)
 end
 
 local function pwd()
