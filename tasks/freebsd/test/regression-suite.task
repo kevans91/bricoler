@@ -21,11 +21,12 @@ Inputs = {
                 -- - kernel modules
                 -- XXX-MJ need to provide some extra disks for the ZFS tests
                 -- XXX-MJ want to disable crond (and maybe other daemons)
+                -- XXX-MJ cannot enable dtrace tests by default because they break cross-building
                 image_size = "50g",
                 pkgs = "coreutils python py39-pytest py39-scapy perl5 jq ksh93 openvpn llvm gtar isc-dhcp44-server",
                 ssh_users = "root",
                 build = {
-                    make_args = "WITHOUT_CLANG= WITHOUT_LLD= WITHOUT_LLDB= WITHOUT_LIB32= WITH_DTRACE_TESTS="
+                    make_args = "WITHOUT_CLANG= WITHOUT_LLD= WITHOUT_LLDB= WITHOUT_LIB32="
                 }
             },
         },

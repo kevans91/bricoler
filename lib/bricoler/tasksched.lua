@@ -20,6 +20,7 @@ local TaskSched = Class({
     target = "",                -- Name of the target task to run.
     universe = {},              -- Set of all known tasks, keyed by task name.
 }, {
+    Class.property("env", "table"),
     Class.property("params", "table"),
     Class.property("universe", "table"),
     Class.property("target", "string"),
@@ -40,13 +41,16 @@ function TaskSched:_mksched(taskname)
     if not self.universe[taskname] then
         error("Unknown task '" .. taskname .. "'.")
     end
-    local task = self.universe[taskname]
+    local task = Task{
+        env = self.env,
+        path = self.universe[taskname],
+    }
     local inputs = {}
     for name, input in pairs(task.inputs) do
         inputs[name] = self:_mksched(input.task)
     end
     return TaskSchedNode{
-        task = Task{path = task.path},
+        task = task,
         name = taskname,
         inputs = inputs,
     }
@@ -180,7 +184,7 @@ function TaskSched:_bind(params)
     end
 
     -- Now handle lazy inter-task parameter bindings.
-    -- XXX-MJ what happens if the user overrode one of these?
+    -- XXX-MJ what happens if the user overrode one of these? need to print a warning at minimum
     self:_visit(function (sched)
         local task = sched.task
         params = task:paramvals()
@@ -199,7 +203,7 @@ end
 
 -- Execute a task schedule, having bound paramter values.
 -- "ctx" provides global parameters that get passed to each task's Run().
-function TaskSched:run(ctx)
+function TaskSched:run(clean, ctx)
     if self.job then
         Workdir.push("tasks/" .. self.schedule[2] .. "/" .. self.job)
     else
@@ -217,13 +221,13 @@ function TaskSched:run(ctx)
     end)
 
     -- Clean working directories if asked to do so.
-    if ctx.clean ~= nil then
-        if #ctx.clean == 0 then
+    if clean ~= nil then
+        if #clean == 0 then
             Workdir.clean()
         else
             -- Before doing anything destructive, make sure that all of the
             -- task directories we were asked to clean actually exist.
-            local toclean = PL.tablex.copy(ctx.clean)
+            local toclean = PL.tablex.copy(clean)
             self:_visit(function (_, id)
                 local name = table.concat(id, ".")
                 if toclean[name] then
@@ -237,7 +241,7 @@ function TaskSched:run(ctx)
             -- Seems ok, go ahead and clean.
             self:_visitcd(function (_, id)
                 local name = table.concat(id, ".")
-                if ctx.clean[name] then
+                if clean[name] then
                     Workdir.clean()
                 end
             end)

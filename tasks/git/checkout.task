@@ -38,8 +38,7 @@ function Run(_, params, _, outputs)
     local remote = params.remote
 
     if params.clone then
-        local attr = fs.attributes(checkout)
-        if attr and fs.attributes(checkout .. "/.git") then
+        if isdir(checkout) and isdir(checkout .. "/.git") then
             execp{"git", "-C", checkout, "pull", "--rebase", remote}
         elseif params.branch then
             execp{"git", "clone", "--depth=1", "--origin", remote,

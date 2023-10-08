@@ -23,9 +23,7 @@ local function enumtasks(basepath)
         local name = path:match("^" .. basepath .. "/+(.+)%.task$")
         if name then
             assert(not tasks[name], "Duplicate task name '" .. name .. "'")
-            tasks[name] = Task{
-                path = Util.realpath(path)
-            }
+            tasks[name] = Util.realpath(path)
         else
             -- XXX-MJ simplistic, really we want to ignore certain files
             --Util.warn("Ignored file '" .. path .. "' in task directory")
@@ -42,7 +40,7 @@ local taskdir = os.getenv("BRICOLER_TASKDIR") or Util.realpath(scriptdir .. "/ta
 local tasks = enumtasks(taskdir)
 
 local cmds = {}
-local parser = Argparse("bricoler", "Manage and run tasks.")
+local parser = Argparse("bricoler", "Manage and run tasks")
 cmds.runtask = parser:command("runtask")
     :description("Run the specified task, or list available tasks")
 cmds.runtask:flag("-s --show"):description("Print the computed task schedule")
@@ -80,6 +78,12 @@ cmds.sql:option("--workdir")
 
 local args = parser:parse()
 
+local ctx = {
+    quiet = not Posix.unistd.isatty(Posix.unistd.STDOUT_FILENO),
+    maxjobs = Util.sysctl("hw.ncpu"),
+}
+local env = require 'lib.bricoler.tasklib.env'(ctx)
+
 Workdir.init(args.workdir, tasks)
 local dbpath = "./jobs.db"
 
@@ -97,6 +101,7 @@ if args.runtask then
         os.exit(0)
     end
     local sched = TaskSched{
+        env = env,
         job = args.job,
         jobdb = db,
         params = args.param,
@@ -110,11 +115,7 @@ if args.runtask then
         if clean then
             clean = PL.tablex.makeset(clean)
         end
-        sched:run({
-            clean = clean,
-            quiet = not Posix.unistd.isatty(Posix.unistd.STDOUT_FILENO),
-            maxjobs = Util.sysctl("hw.ncpu"),
-        })
+        sched:run(clean, ctx)
     end
 elseif args.sql then
     os.execute("sqlite3 " .. dbpath)

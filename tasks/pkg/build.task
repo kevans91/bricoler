@@ -36,7 +36,8 @@ Outputs = {
 
 function Run(ctx, params, inputs, outputs)
     mkdirp(outputs.objdir)
-    local oldpwd = cd(outputs.objdir)
+    local oldpwd = pwd()
+    cd(outputs.objdir)
 
     system(("%s %s/%s/configure %s")
            :format(params.configure_env,
