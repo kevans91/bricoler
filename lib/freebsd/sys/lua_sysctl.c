@@ -4,6 +4,7 @@
 
 #include <sys/sysctl.h>
 
+#include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,8 +16,7 @@
 int	luaopen_sys_sysctl(lua_State *L);
 
 static int
-fmtval(lua_State *L, int *oidp, size_t oidlen, char *buf,
-    size_t buflen __unused)
+fmtval(lua_State *L, int *oidp, size_t oidlen, char *buf, size_t buflen)
 {
 	int fmtbuf[128];
 	int oid[CTL_MAXNAME + 2];
@@ -36,15 +36,36 @@ fmtval(lua_State *L, int *oidp, size_t oidlen, char *buf,
 
 	switch (ctltype) {
 	case CTLTYPE_STRING:
-		/* XXX-MJ make sure it's really nul-terminated? */
+		assert(strnlen(buf, buflen) < buflen);
 		lua_pushstring(L, buf);
-		break;
+		return (1);
+#define FMTVAL_INT(vt) do {		\
+	lua_Integer lval;		\
+	vt val;				\
+					\
+	assert(buflen == sizeof(val));	\
+	memcpy(&val, buf, sizeof(val));	\
+	lval = val;			\
+	lua_pushinteger(L, lval);	\
+	return (1);			\
+} while (0)
+	case CTLTYPE_U8:	FMTVAL_INT(uint8_t);
+	case CTLTYPE_S8:	FMTVAL_INT(int8_t);
+	case CTLTYPE_U16:	FMTVAL_INT(uint16_t);
+	case CTLTYPE_S16:	FMTVAL_INT(int16_t);
+	case CTLTYPE_U32:	FMTVAL_INT(uint32_t);
+	case CTLTYPE_S32:	FMTVAL_INT(int32_t);
+	case CTLTYPE_U64:	FMTVAL_INT(uint64_t);
+	case CTLTYPE_S64:	FMTVAL_INT(int64_t);
+	case CTLTYPE_UINT:	FMTVAL_INT(unsigned int);
+	case CTLTYPE_INT:	FMTVAL_INT(int);
+	case CTLTYPE_ULONG:	FMTVAL_INT(unsigned long);
+	case CTLTYPE_LONG:	FMTVAL_INT(long);
+#undef FMTVAL_INT
 	default:
 		lua_pushnil(L);
-		break;
+		return (1);
 	}
-
-	return (1);
 }
 
 static int
@@ -81,6 +102,7 @@ l_sysctl(lua_State *L)
 		lua_pushstring(L, strerror(error));
 		return (2);
 	}
+	assert(oldlen > 0);
 	oldlen *= 2; /* what sysctl(8) does */
 	oldp = malloc(oldlen);
 	if (oldp == NULL)
