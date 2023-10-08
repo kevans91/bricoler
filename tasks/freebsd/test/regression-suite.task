@@ -22,7 +22,7 @@ Inputs = {
                 -- XXX-MJ need to provide some extra disks for the ZFS tests
                 -- XXX-MJ want to disable crond (and maybe other daemons)
                 image_size = "50g",
-                pkgs = "python py39-pytest py39-scapy perl5 jq ksh93 openvpn llvm gtar isc-dhcp44-server",
+                pkgs = "coreutils python py39-pytest py39-scapy perl5 jq ksh93 openvpn llvm gtar isc-dhcp44-server",
                 ssh_users = "root",
                 build = {
                     make_args = "WITHOUT_CLANG= WITHOUT_LLD= WITHOUT_LLDB= WITHOUT_LIB32= WITH_DTRACE_TESTS="
@@ -50,7 +50,7 @@ function Run(_, params, inputs)
     VM:boot()
     VM:expect("send -- \"sysctl kern.ipc.tls.enable=1\\n\"")
     VM:expect("send -- \"sysctl vfs.aio.enable_unsafe=1\\n\"")
-    VM:expect("send -- \"kldload ipsec pf pfsync if_ovpn carp\\n\"")
+    VM:expect("send -- \"kldload mqueuefs ipsec pf pfsync if_ovpn carp sctp\\n\"")
 
     -- ifconfig_DEFAULT breaks some networking tests, at least frag6.
     -- Remove it here assuming that the guest has already DHCPed and won't
