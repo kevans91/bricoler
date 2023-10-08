@@ -3,6 +3,8 @@
 local Fs = require 'lfs'
 local Posix = require 'posix'
 
+local Sys = require 'lib.freebsd.sys'
+
 local function ansicolor(str, color)
     local ctab = {
         green = "32m",
@@ -75,14 +77,7 @@ local function fsvisit(dir, cb)
 end
 
 local function sysctl(name)
-    -- XXX-MJ allows arbitrary command execution
-    local f, err = io.popen("sysctl -n " .. name)
-    if not f then
-        error("Failed to popen('sysctl -n " .. name .. "'): " .. err)
-    end
-    local val = f:read()
-    f:close()
-    return val
+    return Sys.sysctl.sysctlbyname(name)
 end
 
 local function err(code, msg)
