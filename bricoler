@@ -47,6 +47,9 @@ cmds.runtask:flag("-s --show"):description("Print the computed task schedule")
 cmds.runtask:option("-p --param")
     :description("Specify a parameter for one or more tasks, [task:]<param>=<value>")
     :count("*")
+cmds.runtask:option("-j --maxjobs")
+    :description("Maximum number of CPUs that a task may use")
+    :default(Util.sysctl("hw.ncpu"))
 cmds.runtask:option("-c --clean")
     :description("Clean the output directory for task <task>")
     :count("*")
@@ -79,8 +82,9 @@ cmds.sql:option("--workdir")
 local args = parser:parse()
 
 local ctx = {
+    maxjobs = tonumber(args.maxjobs),
     quiet = not Posix.unistd.isatty(Posix.unistd.STDOUT_FILENO),
-    maxjobs = Util.sysctl("hw.ncpu"),
+    tmpdir = Util.realpath(args.workdir .. "/tmp"),
 }
 local env = require 'lib.bricoler.tasklib.env'(ctx)
 
