@@ -23,7 +23,7 @@ local function init(dir, tasks)
     if not ok then
         error("Failed to initialize workdir: " .. err)
     end
-    for _, subdir in ipairs({"tasks", "runtask"}) do
+    for _, subdir in ipairs({"tasks", "runtask", "tmp"}) do
         ok, err = Util.mkdirp(dir .. "/" .. subdir)
         if not ok then
             error("Failed to create '" .. subdir .. "' subdir: " .. err)

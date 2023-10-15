@@ -70,10 +70,10 @@ end
 local function wrapcheck(f, name)
     return function (param)
         local res, errmsg = f(param)
-        if not res then
-            error(("%s(%s) failed: %s"):format(name, param, errmsg))
+        if res then
+            return res
         end
-        return res
+        error(("%s(%s) failed: %s"):format(name, param, errmsg))
     end
 end
 
@@ -87,6 +87,7 @@ local function uname_p()
 end
 
 return function (ctx)
+    -- XXX-MJ make this table immutable
     return {
         -- lua builtins.
         error = error,
@@ -107,6 +108,14 @@ return function (ctx)
         -- I/O helpers.
         mkdirp = wrapcheck(PL.dir.makepath, "makepath"), -- XXX-MJ deprecate
         makepath = wrapcheck(PL.dir.makepath, "makepath"),
+        mkdtemp = function (template)
+            local res, errmsg = Posix.stdlib.mkdtemp(
+                ("%s/%s.XXXXXX"):format(ctx.tmpdir, template))
+            if res then
+                return res
+            end
+            error("Failed to create temporary directory: " .. errmsg)
+        end,
         writefile = writefile,
 
         -- Path handling.
@@ -116,12 +125,11 @@ return function (ctx)
         isdir = PL.path.isdir,
         isfile = PL.path.isfile,
         pwd = function ()
-            local res, err = Posix.unistd.getcwd()
+            local res, errmsg = Posix.unistd.getcwd()
             if res then
                 return res
-            else
-                error("Failed to get current working directory: " .. err)
             end
+            error("Failed to get current working directory: " .. errmsg)
         end,
         realpath = wrapcheck(Posix.stdlib.realpath, "realpath"),
 
