@@ -7,7 +7,7 @@ Params = {
     pkgs = {
         descr = "Packages to install",
         -- XXX-MJ needs to be specified only once
-        default = "python py39-pytest py39-scapy perl5 jq ksh93 openvpn llvm gtar",
+        default = "coreutils python py39-pytest py39-scapy perl5 jq ksh93 openvpn llvm gtar isc-dhcp44-server",
     },
 }
 
@@ -51,7 +51,7 @@ function Run(_, params, inputs)
     VM:boot()
     VM:expect("send -- \"sysctl kern.ipc.tls.enable=1\\n\"")
     VM:expect("send -- \"sysctl vfs.aio.enable_unsafe=1\\n\"")
-    VM:expect("send -- \"kldload mqueuefs ipsec pf pfsync if_ovpn carp sctp\\n\"")
+    VM:expect("send -- \"kldload mac_bsdextended mqueuefs ipsec pf pfsync if_ovpn carp sctp\\n\"")
 
     -- ifconfig_DEFAULT breaks some networking tests, at least frag6.
     -- Remove it here assuming that the guest has already DHCPed and won't
