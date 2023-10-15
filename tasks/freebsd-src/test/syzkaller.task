@@ -1,4 +1,4 @@
--- Copyright (c) 2022 Mark Johnston <markj@FreeBSD.org>
+-- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
 Params = {
     dataset = {
@@ -22,10 +22,21 @@ Inputs = {
         task = "freebsd-src/build/vm-image",
         params = {
             ssh_users = "root",
-            build = {
-                kernconf = "SYZKALLER",
-                -- kernconfdir = ???
-            },
+            build = function ()
+                local kernconfdir = mkdtemp("syz-kernconf")
+                writefile(kernconfdir .. "/SYZKALLER", [[
+include GENERIC
+
+ident SYZKALLER
+
+options         COVERAGE
+options         KCOV
+]])
+                return {
+                    kernconf = "SYZKALLER",
+                    kernconfdir = kernconfdir,
+                }
+            end
         },
     },
     syzkaller = {

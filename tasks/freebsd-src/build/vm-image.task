@@ -194,22 +194,6 @@ sshd_enable="YES"
     -- At this point we're finished writing files into the image.
     mtree:write()
 
-    local efibins = {
-        ["amd64/amd64"] = "bootx64.efi",
-        ["arm/armv7"] = "bootarm.efi",
-        ["arm64/aarch64"] = "bootaa64.efi",
-        ["i386/i386"] = "bootia32.efi",
-        ["riscv/riscv64"] = "bootriscv64.efi",
-    }
-    local efibin = efibins[params.target]
-
-    -- Create the ESP.
-    mkdirp("boot/efi/EFI/BOOT")
-    system(("cp -f ./boot/loader.efi ./boot/efi/EFI/BOOT/%s"):format(efibin))
-    system(("makefs -t msdos -o fat_type=16 -o sectors_per_cluster=1" ..
-            " -o volume_label=EFISYS -s 4096k %s/vm.efi ./boot/efi")
-           :format(imagedir))
-
     -- Create the main filesystem image.
     if params.image_fs == "ufs" then
         -- XXX-MJ METALOG should be inputs.build.metalog
@@ -221,14 +205,35 @@ sshd_enable="YES"
         system(cmd)
     end
 
+    -- EFI support is not enabled by default in the i386 build.
+    local efi = params.target ~= "i386/i386"
+    if efi then
+        local efibins = {
+            ["amd64/amd64"] = "bootx64.efi",
+            ["arm/armv7"] = "bootarm.efi",
+            ["arm64/aarch64"] = "bootaa64.efi",
+            ["riscv/riscv64"] = "bootriscv64.efi",
+        }
+        local efibin = efibins[params.target]
+
+        -- Create the ESP.
+        mkdirp("boot/efi/EFI/BOOT")
+        system(("cp -f ./boot/loader.efi ./boot/efi/EFI/BOOT/%s"):format(efibin))
+        system(("makefs -t msdos -o fat_type=16 -o sectors_per_cluster=1" ..
+                " -o volume_label=EFISYS -s 4096k %s/vm.efi ./boot/efi")
+               :format(imagedir))
+    end
+
     -- Put them all together.  The main filesystem comes last in the partition
     -- table so that it can be expanded.
     local cmd = "mkimg -s gpt -f raw -S 512 "
     if params.target == "amd64/amd64" or params == "i386/i386" then
         cmd = cmd .. "-b ./boot/pmbr -p freebsd-boot/bootfs:=./boot/gptboot "
     end
-    cmd = cmd ..  "-p efi:=" ..
-          imagedir .. "/vm.efi -p freebsd-swap/swap::8G -p freebsd-ufs/rootfs:=" ..
+    if efi then
+        cmd = cmd ..  "-p efi:=" .. imagedir .. "/vm.efi"
+    end
+    cmd = cmd .. " -p freebsd-swap/swap::8G -p freebsd-ufs/rootfs:=" ..
           imagedir .. "/image.fs -o " .. imagedir .. "/image.raw"
     system(cmd)
 

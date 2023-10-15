@@ -78,8 +78,10 @@ Outputs = {
 }
 
 function Run(ctx, params, inputs, outputs)
+    local cwd = pwd()
+
     -- Build up the make(1) environment.
-    local objdirprefix = realpath(".") .. "/" .. outputs.objdir
+    local objdirprefix = cwd .. "/" .. outputs.objdir
     local env = "MAKEOBJDIRPREFIX=" .. objdirprefix
     if #params.make_env > 0 then
         env = env .. " " .. params.make_env
@@ -98,11 +100,12 @@ function Run(ctx, params, inputs, outputs)
     -- understanding of what the user is asking for.
     for _, v in ipairs({
         {"KERNCONF=", params.kernconf},
+        {"KERNCONFDIR=", params.kernconfdir},
         {"CROSS_TOOLCHAIN=", params.toolchain},
         {"-DNO_ROOT", params.noroot},
         {"SRCCONF=", params.srcconf},
         {"__MAKE_CONF=", params.makeconf},
-        {"DESTDIR=", realpath(".") .. "/" .. outputs.stagedir},
+        {"DESTDIR=", cwd .. "/" .. outputs.stagedir},
         {"WITHOUT_CLEAN=", not params.clean},
         {"TARGET=", target},
         {"TARGET_ARCH=", target_arch},
@@ -113,7 +116,7 @@ function Run(ctx, params, inputs, outputs)
         end
     end
 
-    mkdirp(outputs.stagedir)
+    makepath(outputs.stagedir)
 
     if params.quiet then
         params.make_args = params.make_args .. " -s"
