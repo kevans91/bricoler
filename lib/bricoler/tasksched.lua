@@ -106,14 +106,17 @@ function TaskSched:_bind(params)
             task, param, val = self.target, v:match("^([^=:]+)=(.*)$")
         end
         local tparams = normal[task] or {}
-        tparams[param] = val
+        tparams[param] = {
+            val = val,
+            src = "cmdline: " .. v,
+        }
         normal[task] = tparams
     end
     params = normal
 
     -- XXX-MJ need some more formalism here.  What happens if the same parameter
     -- is overridden from multiple tasks?
-    local function bindval(sched, name, val)
+    local function bindval(sched, name, val, src)
         if type(val) == "function" then
             return
         elseif type(val) == "table" then
@@ -121,10 +124,10 @@ function TaskSched:_bind(params)
                 error("Unmatched task input '" .. name .. "'")
             end
             for pname, pval in pairs(val) do
-                bindval(sched.inputs[name], pname, pval)
+                bindval(sched.inputs[name], pname, pval, src)
             end
         else
-            sched.task:bind(name, val)
+            sched.task:bind(name, val, src)
         end
     end
 
@@ -134,12 +137,12 @@ function TaskSched:_bind(params)
     self:_visit(function (sched)
         local task = sched.task
         for name, param in pairs(task.params) do
-            task:bind(name, param:defaultvalue())
+            task:bind(name, param:defaultvalue(), "default")
         end
 
         for iname, input in pairs(task.inputs) do
             for pname, param in pairs(input.params) do
-                bindval(sched.inputs[iname], pname, param)
+                bindval(sched.inputs[iname], pname, param, "parent: " .. sched.name)
             end
         end
     end)
@@ -179,7 +182,7 @@ function TaskSched:_bind(params)
         end
 
         for param, val in pairs(v) do
-            sched.task:bind(param, val)
+            sched.task:bind(param, val.val, val.src)
         end
     end
 
@@ -194,7 +197,7 @@ function TaskSched:_bind(params)
                 -- direct descendants.
                 if type(param) == "function" then
                     param = param(params)
-                    sched.inputs[iname].task:bind(pname, param)
+                    sched.inputs[iname].task:bind(pname, param, sched.name)
                 end
             end
         end
@@ -276,7 +279,7 @@ function TaskSched:print()
         end
 
         if input then
-            print(indent(level, ("%s (%s)"):format(input, taskname)))
+            print(indent(level, ("T %s (%s)"):format(input, taskname)))
         else
             print(indent(level, taskname))
         end
@@ -294,11 +297,14 @@ function TaskSched:print()
                     val = ""
                 end
             end
-            print(indent(level + 1, ("P %s=%s"):format(paramname, tostring(val))))
+            local src = param:source()
+            local toprint = ("P %s=%s"):format(paramname, tostring(val))
+            toprint = toprint .. " (" .. src .. ")"
+            print(indent(level + 1, toprint))
         end
 
         for _, name in PL.tablex.sortv(PL.tablex.keys(task.outputs)) do
-            print(indent(level + 1, "O " .. name))
+            print(indent(level + 1, "-> " .. name))
         end
 
         -- XXX-MJ this should use _visit, but needs preorder traversal.

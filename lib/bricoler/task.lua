@@ -26,8 +26,9 @@ end
 local TaskParam = Class({
     descr = "",                 -- Human readable description for help messages.
     required = false,           -- Is it an error to run without a binding?
-    type = "string",
-    valid = always_valid,
+    src = "",                   -- Where did the value come from?
+    type = "string",            -- Lua type.
+    valid = always_valid,       -- Validator for the parameter value.
 }, {
     Class.property("default"),
     Class.property("descr", "string"),
@@ -76,6 +77,10 @@ function TaskParam:value()
     end
 end
 
+function TaskParam:source()
+    return self.src
+end
+
 local Task = Class({
     inputs = {},        -- Inputs defined by the task.
     outputs = {},       -- Outputs defined by the task.
@@ -111,7 +116,7 @@ function Task:_ctor(args)
     return self
 end
 
-function Task:bind(paramname, val)
+function Task:bind(paramname, val, src)
     if not self.params[paramname] then
         error("Binding non-existent parameter '" .. paramname .. "'")
     end
@@ -141,6 +146,9 @@ function Task:bind(paramname, val)
     if param.type == "boolean" and type(val) == "string" then
         assert(val == "true" or val == "false")
         val = val == "true" and true or false
+    end
+    if src then
+        param.src = src
     end
     param.val = val
 end
