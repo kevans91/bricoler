@@ -2,6 +2,11 @@
  * Copyright (c) Mark Johnston <markj@FreeBSD.org>
  */
 
+/*
+ * Wrappers for the sysctl(2) and sysctlbyname(2) system calls.  Currently the
+ * interfaces only support getting values.
+ */
+
 #include <sys/sysctl.h>
 
 #include <assert.h>
@@ -13,7 +18,7 @@
 #include <lauxlib.h>
 #include <lualib.h>
 
-int	luaopen_sys_sysctl(lua_State *L);
+int	luaopen_sysctl(lua_State *L);
 
 static int
 fmtval(lua_State *L, int *oidp, size_t oidlen, char *buf, size_t buflen)
@@ -173,7 +178,7 @@ static const struct luaL_Reg l_sysctltab[] = {
 };
 
 int
-luaopen_sys_sysctl(lua_State *L)
+luaopen_sysctl(lua_State *L)
 {
 	lua_newtable(L);
 

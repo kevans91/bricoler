@@ -1,9 +1,4 @@
-SHLIB_NAME=	sysctl.so
+SUBDIR=	execve	\
+	sysctl
 
-SRCS+=		lua_sysctl.c
-
-CFLAGS+=	-I/usr/local/include/lua54
-
-WARNS?=		6
-
-.include <bsd.lib.mk>
+.include <bsd.subdir.mk>
