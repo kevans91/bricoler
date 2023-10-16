@@ -9,6 +9,7 @@ local dirstack = {}
 
 local function clean()
     local cwd = Fs.currentdir()
+    assert(cwd:sub(1, 1) == "/")
     if not cwd:match("bricoler") then
         error("Cowardly refusing to run 'rm -rf *' in " .. cwd)
     end
