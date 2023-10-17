@@ -42,7 +42,7 @@ Outputs = {
 function Run(_, params, inputs)
     -- XXX-MJ hard-coded parallelism
     -- XXX-MJ should be an attribute of the VM
-    local kyua = "kyua -v parallelism=4 test -k /usr/tests/Kyuafile"
+    local kyua = "kyua -v parallelism=4 -v test_suites.FreeBSD.allow_sysctl_side_effects=1 test -k /usr/tests/Kyuafile"
     if params.tests then
         kyua = kyua .. " " .. params.tests
     end
