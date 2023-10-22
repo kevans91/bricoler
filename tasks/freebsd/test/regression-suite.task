@@ -64,7 +64,9 @@ function Run(_, params, inputs)
     VM:expect("send -- \"ln -s /usr/local/bin/clang++ /usr/local/bin/c++\\n\"")
     VM:expect("send -- \"ln -s /usr/local/bin/clang-cpp /usr/local/bin/cpp\\n\"")
 
-    VM:expect("send -- \"" .. kyua .. "\\n\"")
+    -- XXX-MJ set in the VM lib
+    VM:expect("set send_slow {1 .001}")
+    VM:expect("send -s -- \"" .. kyua .. "\\n\"")
     VM:expect("expect eof")
 
     -- XXX-MJ download resultsdb and show the report
