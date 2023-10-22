@@ -1,4 +1,4 @@
 .luarc.json
-lib/freebsd/*/*.so
-lib/freebsd/*/*.so.*
-lib/freebsd/*/*.pico
+lib/freebsd/sys/*/*.so
+lib/freebsd/sys/*/*.so.*
+lib/freebsd/sys/*/*.pico
