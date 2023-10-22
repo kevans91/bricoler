@@ -79,7 +79,7 @@ function Run(_, params, inputs, outputs)
     -- An mtree manifest is always interpreted relative to the cwd.
     cd(inputs.build.stagedir)
 
-    if params.ssh_users then
+    if params.ssh_users and params.ssh_users ~= "" then
         local keypath = "./root/.ssh/id_ed25519_root"
         local keygen = "ssh-keygen -t ed25519 -N \"\" -f " .. keypath
 
@@ -97,7 +97,7 @@ function Run(_, params, inputs, outputs)
         mtree:add("./root/.ssh/authorized_keys", {type = "file"})
     end
 
-    if params.pkgs then
+    if params.pkgs and params.pkgs ~= "" then
         -- Create a local pkg repository by fetching packages from some
         -- source (currently hard-coded to pkg.f.o).
         mkdirp("tmp/pkg")
