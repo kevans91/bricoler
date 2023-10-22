@@ -15,6 +15,7 @@ Inputs = {
     VM = {
         task = "freebsd/vm-boot",
         params = {
+            interactive = false,
             image = {
                 -- XXX-MJ need to plumb a bunch of stuff into VM image creation.
                 -- - sysctls (e.g. kern.ipc.tls.enabled)

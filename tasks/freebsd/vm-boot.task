@@ -21,7 +21,7 @@ Params = {
     },
     interactive = {
         descr = "Run the VM in the current TTY",
-        default = false,
+        default = true,
     },
     target = {
         -- XXX-MJ ideally we'd infer this from the input image somehow
