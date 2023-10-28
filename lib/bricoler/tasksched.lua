@@ -278,18 +278,12 @@ function TaskSched:print()
             return ("  "):rep(count) .. str
         end
 
-        if input then
-            print(indent(level, ("T %s (%s)"):format(input, taskname)))
-        else
-            print(indent(level, taskname))
-        end
+        print(indent(level, ("T %s (%s)"):format(input or "target", taskname)))
 
         for _, paramname in PL.tablex.sortv(PL.tablex.keys(task.params)) do
             local param = task.params[paramname]
             local val = param:value()
             if val == nil then
-                -- It would be nice to use other colours to denote how the
-                -- parameter was derived (e.g., user-provided, default, etc.).
                 if param.required then
                     val = "???"
                     paramname = Util.ansicolor(paramname, "red")
