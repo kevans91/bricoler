@@ -6,7 +6,7 @@ local Class = require 'lib.bricoler.class'
 
 local TaskInput = Class({
     descr = "",                 -- Human readable description for help messages.
-    params = {},
+    params = {},                -- Parameter values to pass to the input task.
 }, {
     Class.property("descr", "string"),
     Class.property("task", "string"),
@@ -103,14 +103,23 @@ function Task:_ctor(args)
     end
     self.action = self.env.Run
 
+    -- Parameters, inputs and outputs belong to the same namespace.  Make sure
+    -- that their names are unique and contain only allowed characters.
+    local names = {}
     for _, p in ipairs{
-        {self.env.Inputs,  self.inputs,  TaskInput},
-        {self.env.Outputs, self.outputs, TaskOutput},
-        {self.env.Params,  self.params,  TaskParam},
+        {self.env.Inputs,  self.inputs,  TaskInput, "Input"},
+        {self.env.Outputs, self.outputs, TaskOutput, "Output"},
+        {self.env.Params,  self.params,  TaskParam, "Parameter"},
     } do
         for k, v in pairs(p[1] or {}) do
             assert(not k:match("[%.:=]"), "Invalid character in name '" .. k .. "'")
             p[2][k] = p[3](v)
+            if names[k] then
+                local article = names[k]:match("^[AEIOU]") and "an" or "a"
+                error(("%s '%s' is already defined as %s %s")
+                      :format(p[4], k, article, names[k]:lower()))
+            end
+            names[k] = p[4]
         end
     end
     return self
