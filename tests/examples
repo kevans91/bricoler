@@ -1,4 +1,4 @@
-#!/usr/bin/env atf-sh
+#!/usr/libexec/atf-sh
 
 #
 # Verify that the example tasks work.
