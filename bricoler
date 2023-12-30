@@ -6,7 +6,6 @@ local Posix = require 'posix'
 local PL = require 'pl.import_into'()
 
 local JobDB = require 'lib.bricoler.jobdb'
-local Task = require 'lib.bricoler.task'
 local TaskSched = require 'lib.bricoler.tasksched'
 local Workdir = require 'lib.bricoler.workdir'
 local Util = require 'lib.bricoler.util'
