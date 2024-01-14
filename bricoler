@@ -5,6 +5,9 @@ local Argparse = require 'argparse'
 local Posix = require 'posix'
 local PL = require 'pl.import_into'()
 
+-- Let relative includes work.
+local scriptdir = Posix.libgen.dirname(arg[0])
+package.path = package.path .. ";" .. scriptdir .. "/?.lua"
 local JobDB = require 'lib.bricoler.jobdb'
 local TaskSched = require 'lib.bricoler.tasksched'
 local Workdir = require 'lib.bricoler.workdir'
@@ -30,9 +33,6 @@ local function enumtasks(basepath)
     end)
     return tasks
 end
-
--- Find a path for this script and load task definitions from the relative dir.
-local scriptdir = Util.dirname(arg[0])
 
 local workdir = os.getenv("BRICOLER_WORKDIR") or (os.getenv("HOME") .. "/bricoler")
 local taskdir = os.getenv("BRICOLER_TASKDIR") or Util.realpath(scriptdir .. "/tasks")

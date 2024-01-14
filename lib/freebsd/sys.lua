@@ -1,7 +1,8 @@
 -- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
+local scriptdir = (require 'posix').libgen.dirname(arg[0])
 local oldcpath = package.cpath
-package.cpath = package.cpath .. ";./lib/freebsd/sys/?/?.so"
+package.cpath = oldcpath .. ";" .. scriptdir .. "/lib/freebsd/sys/?/?.so"
 
 local M = {
     execve = require 'execve',
