@@ -22,6 +22,9 @@ Params = {
     },
     image_size = {
         descr = "Output filesystem image size",
+        -- At the time of writing, a default FreeBSD installation occupies
+        -- something like 4GB.  Give users some extra space.
+        default = "10g",
     },
     ssh_users = {
         descr = "List of users for which to install SSH keys",
