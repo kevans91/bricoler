@@ -139,6 +139,12 @@ return function (ctx)
         uname_p = uname_p,
         zfs_property = function (prop, dataset)
             -- XXX-MJ yuck
+            if prop:find("[-a-zA-Z0-9_]+") then
+                error("Invalid property name")
+            end
+            if dataset:find("^[-a-zA-Z0-9_/]+") then
+                error("Invalid dataset name")
+            end
             local f, err = io.popen(("zfs get -H -o value %s %s")
                                     :format(prop, dataset))
             if not f then
