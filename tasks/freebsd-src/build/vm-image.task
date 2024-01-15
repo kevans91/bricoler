@@ -171,6 +171,7 @@ if [ -f /firstboot -a -d /root/bootstrap/All ]; then
         # Otherwise it'll fail when trying to update the upstream repo.
         pkg install -y -r local -g '*'
     fi
+    sync
 fi
 ]])
     end
