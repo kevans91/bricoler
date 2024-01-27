@@ -63,6 +63,8 @@ function Run(_, params, inputs)
     VM:expect("expect -re root@.*#")
     VM:expect("send -- \"sysctl vfs.aio.enable_unsafe=1\\n\"")
     VM:expect("expect -re root@.*#")
+    VM:expect("send -- \"sysctl kern.crypto.allow_soft=1\\n\"")
+    VM:expect("expect -re root@.*#")
     for kld in params.klds:gmatch("%S+") do
         VM:expect("send -- \"kldload " .. kld .. "\\n\"")
         VM:expect("expect -re root@.*#")
