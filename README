@@ -1,0 +1,137 @@
+-- What? --
+
+bricoler (French for "to tinker") is a small lua-based framework which aims to
+make it easier to compose certain common FreeBSD development workflows.
+
+It only runs on FreeBSD, at least for now.  It requires lua54 and some packages:
+- lua54-argparse
+- lua54-Penlight
+- lua54-posix
+- lua54-luafilesystem
+
+Before using it, run "make" to build a couple of small C modules.
+
+Depending on how you use it, you'll probably have to install other packages.
+
+-- Why? --
+
+Today, if I want to build a src tree and run the regression test suite on the
+result in a VM, I have to:
+
+1. Build world and the kernel I want.
+2. Install the result to a staging directory.
+3. Run makefs(8) to build a filesystem image from the staging directory and
+   mtree manifest.
+4. Run mkimg(1) to build a disk image from the filesystem image, possibly also
+   creating an ESP.
+5. Boot the disk image in QEMU, run the test suite, and somehow extract the
+   results.
+
+As a project, we don't have any good tooling around this workflow.
+Furthermore, this workflow has quite a few different parameters, e.g., target
+architecture, disk image size, filesystem type, etc..
+
+If I want to instead take a FreeBSD src revision and fuzz the kernel with
+syzkaller, then I need to perform most of the above steps (with a bunch of
+customization, e.g., root ssh access, a special kernel with kcov(4) enabled),
+plus some others.  This is all tedious to do manually, so of course one writes
+scripts to automate it.  But such scripts are always purpose-driven and so
+miss lots of useful functionality or make assumptions that might not be
+appropriate in general.
+
+Some other workflow examples that are useful to me (but not necessarily
+integrated yet):
+- Build a FreeBSD cloud image and upload it to one of several cloud providers,
+  then try to boot the image.
+- Run tests which require the ability to start and stop VMs (e.g., to test
+  kernel dumps).
+
+Rather than writing ad-hoc scripts for all of my workflows, I wanted a
+framework that would let me reuse code and provide extensive parameterization.
+I wanted it to be useful in CI environments (e.g., you can run it from
+Jenkins) but also useful for interactive developement, in the sense that it's
+part of my compile-build-test-debug loop.
+
+bricoler is an experiment in this direction.  It's somewhat stalled.  I think
+some of the ideas behind it are solid but it needs a stronger vision.  It's
+inspired somewhat by Nix and cheribuild, but it's very primitive.
+
+-- How? --
+
+bricoler is a script which makes use of code under lib/ and some third-party
+libraries (argparse, luaposix, lfs, Penlight).  The tasks/ directory contains
+"tasks", which are composeable building blocks for workflows.  Running
+"bricoler runtask" lists the available tasks.  (Note, at the time of writing,
+some of them are not functional or fully implemented.)
+
+Tasks are lua scripts that contain several tables declaring their properties,
+and a function, Run(), that's executed by the framework.  The tables define a
+task's parameters, inputs and outputs.
+
+A task's inputs define the tasks which must run before that task can run.  For
+instance, if one has a task which builds a FreeBSD VM image, it depends on the
+output of a task which builds world and the kernel.  Tasks which have no
+inputs are leaf tasks and thus run before anything else.
+
+A task's outputs define the result of the task.  This is usually in the form
+of a file tree, but this isn't required.  All tasks are run in the same
+process so it's possible for a task to output arbitrary lua objects which can
+be handed over to subsequent tasks as inputs.
+
+A task's parameters define the "tweakable" properties of the task's execution.
+All parameters can be overridden on the command line.  Furthermore, a
+dependent task can specify the parameters of its input tasks.  Command-line
+parameters have the highest precedence.  Parameters can be typed to an extent,
+can have default values and can specify validators.
+
+When running bricoler, one specifies a task to run.  The framework then
+figures out the dependency tree and creates a "schedule".  The schedule can be
+dumped by adding the "-s" parameter.  Inputs and outputs are placed in the
+work directory, which is ~/bricoler by default.
+
+-- Examples --
+
+Add "-C" to all of these to clean the work directory first.
+
+List all defined tasks:
+  $ bricoler runtask
+
+List the parameters for the regression suite task:
+  $ bricoler runtask freebsd/test/regression-suite -s
+
+Build kgdb using jhb's kdbg scripts:
+  $ bricoler runtask kgdb/build
+
+Build pkg with ASAN enabled and run the test suite:
+  $ bricoler runtask pkg/build -p configure_args=--with-asan
+It would be within the spirit of the framework to define a parameter which
+enables ASAN (and one for UBSAN, etc.) rather than having to know the
+configure syntax.
+
+Boot a FreeBSD VM image built from a development branch and containing several
+packages:
+  $ bricoler runtask --workdir ../bricoler freebsd/vm-boot -p memory=4g -p numcpus=4 \
+        -p image.build.src:repo="file:///home/markj/sb/so_reuseport_lb/src" \
+	-p image.build.src:branch=stable/13-reuseport_lb-backport \
+	-p image:image_size=20g -p image:pkgabi=FreeBSD:13:amd64 \
+	-p image:pkgs=py39-scapy -p image:ssh_users=root
+
+Please read the task definitions for more information.  Note the many XXX
+comments.
+
+-- TODO --
+
+So many things.  An incomplete list:
+- Have some way for tasks to declare their system dependencies, so that they
+  can fail immediately if one is not installed.  The dependencies might need
+  to be derived from a task's parameters.  For instance, vm-boot might need
+  QEMU installed, but not if the user specified bhyve.
+- Have some way to define site-local defaults for parameters.  For instance,
+  a configuration file which specifies parameter values.
+- The workdir layout is kind of confusing.
+- When specifying parameters on the command line, sometimes I want to append
+  to the existing value, but there's no way to do that other than to copy and
+  paste the output from "runtask -s" and include that on the command line.  It
+  would be nice to have a += operator.  Also would be nice to have a @=
+  operator to slurp the value from a file.
+- Documentation.
