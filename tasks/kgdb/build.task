@@ -33,7 +33,7 @@ Outputs = {
 }
 
 function Run(ctx, params, inputs, outputs)
-    local oldpwd = pwd
+    local oldpwd = pwd()
     cd(inputs.gdb.checkout)
     system(("%s/%s/gdb/build"):format(oldpwd, inputs.build.checkout))
     cd(params.obj)
