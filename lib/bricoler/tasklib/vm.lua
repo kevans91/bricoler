@@ -1,6 +1,7 @@
 -- Copyright (c) Mark Johnston <markj@FreeBSD.org>
 
 local Class = require 'lib.bricoler.class'
+local orch = require 'orch'
 
 local VM = Class({
     _expect = {},
@@ -13,34 +14,56 @@ local VM = Class({
 })
 
 function VM:_ctor(args)
-    if not args.interactive then
-        local expect, err = io.popen("expect", "w")
-        if not expect then
-            error(err)
-        end
-        self._expect = expect
-        self:expect("set timeout -1")
-        if self.log then
-            self:expect("log_file " .. self.log)
-        end
-    else
-        self.expect = nil
-    end
+    self.interactive = args.interactive
     return self
 end
 
-function VM:expect(cmd)
-    if not self._expect then
+function VM:cfg(cfg)
+    if self.interactive then
         error("VM is interactive")
     end
-    self._expect:write(cmd .. "\n")
+
+    self.process:cfg(cfg)
+end
+function VM:eof()
+    if self.interactive then
+        error("VM is interactive")
+    end
+
+    self.process:eof()
+end
+function VM:match(text)
+    if self.interactive then
+        error("VM is interactive")
+    end
+
+    self.process:match(text)
+end
+function VM:write(text)
+    if self.interactive then
+        error("VM is interactive")
+    end
+
+    self.process:write(text)
 end
 
 function VM:boot()
-    self:expect("spawn " .. self.cmd)
-    self:expect("expect login:")
-    self:expect("send -- root\\n")
-    self:expect("expect -re root@.*#")
+    local cmdtable = {}
+
+    for word in self.cmd:gmatch("([^%s]+)") do
+        cmdtable[#cmdtable + 1] = word
+    end
+
+    local process = orch.spawn(cmdtable)
+    process.timeout = nil
+    if self.log then
+        process:log(self.log)
+    end
+
+    process:match("login")
+    process:write("root\n")
+    process:match("root@.*#")
+    self.process = process
 end
 
 return VM

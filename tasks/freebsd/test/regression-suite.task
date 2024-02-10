@@ -59,38 +59,37 @@ function Run(_, params, inputs)
 
     local VM = inputs.VM.handle
     VM:boot()
-    VM:expect("send -- \"sysctl kern.ipc.tls.enable=1\\n\"")
-    VM:expect("expect -re root@.*#")
-    VM:expect("send -- \"sysctl vfs.aio.enable_unsafe=1\\n\"")
-    VM:expect("expect -re root@.*#")
-    VM:expect("send -- \"sysctl kern.crypto.allow_soft=1\\n\"")
-    VM:expect("expect -re root@.*#")
+    VM:write("sysctl kern.ipc.tls.enable=1\n")
+    VM:match("root@.*#")
+    VM:write("sysctl vfs.aio.enable_unsafe=1\n")
+    VM:match("root@.*#")
+    VM:write("sysctl kern.crypto.allow_soft=1\n")
+    VM:match("root@.*#")
     for kld in params.klds:gmatch("%S+") do
-        VM:expect("send -- \"kldload " .. kld .. "\\n\"")
-        VM:expect("expect -re root@.*#")
+        VM:write("kldload " .. kld .. "\n")
+        VM:match("root@.*#")
     end
 
     -- ifconfig_DEFAULT breaks some networking tests, at least frag6.
     -- Remove it here assuming that the guest has already DHCPed and won't
     -- reboot.
-    VM:expect("send -- \"sysrc -x ifconfig_DEFAULT\\n\"")
-    VM:expect("expect -re root@.*#")
+    VM:write("sysrc -x ifconfig_DEFAULT\n")
+    VM:match("root@.*#")
 
     -- Some ATF tests want a toolchain, link the executables installed by llvm.
-    VM:expect("send -- \"ln -s /usr/local/bin/clang /usr/local/bin/cc\\n\"")
-    VM:expect("expect -re root@.*#")
-    VM:expect("send -- \"ln -s /usr/local/bin/clang++ /usr/local/bin/c++\\n\"")
-    VM:expect("expect -re root@.*#")
-    VM:expect("send -- \"ln -s /usr/local/bin/clang-cpp /usr/local/bin/cpp\\n\"")
-    VM:expect("expect -re root@.*#")
+    VM:write("ln -s /usr/local/bin/clang /usr/local/bin/cc\n")
+    VM:match("root@.*#")
+    VM:write("ln -s /usr/local/bin/clang++ /usr/local/bin/c++\n")
+    VM:match("root@.*#")
+    VM:write("ln -s /usr/local/bin/clang-cpp /usr/local/bin/cpp\n")
+    VM:match("root@.*#")
 
     -- XXX-MJ set in the VM lib
-    VM:expect("set send_slow {1 .001}")
-    VM:expect("set timeout -1")
-    VM:expect("send -s -- \"" .. kyua .. "\\n\"")
-    VM:expect("expect -re root@.*#")
-    VM:expect("send -s -- \"kyua report --verbose -r /root/kyua.db\\n\"")
-    VM:expect("expect eof")
+    VM:cfg({ rate = { bytes = 1 , delay = .001 } })
+    VM:expect(kyua .. "\n")
+    VM:match("root@.*#")
+    VM:expect("kyua report --verbose -r /root/kyua.db\n")
+    VM:eof()
 
     -- XXX-MJ download resultsdb and show the report
 end
